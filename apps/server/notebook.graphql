@@ -1,3 +1,4 @@
 type Mutation {
-  createNote(input: CreateNoteInput!): Note
+  createNote(input: CreateNoteInput!): Note!
+  updateNote(id: ID!, input: UpdateNoteInput!): Note!
 }

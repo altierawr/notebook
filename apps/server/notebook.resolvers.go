@@ -12,7 +12,14 @@ import (
 
 // CreateNote is the resolver for the createNote field.
 func (r *mutationResolver) CreateNote(ctx context.Context, input ent.CreateNoteInput) (*ent.Note, error) {
-	return r.client.Note.Create().SetInput(input).Save(ctx)
+	client := ent.FromContext(ctx)
+	return client.Note.Create().SetInput(input).Save(ctx)
+}
+
+// UpdateNote is the resolver for the updateNote field.
+func (r *mutationResolver) UpdateNote(ctx context.Context, id int, input ent.UpdateNoteInput) (*ent.Note, error) {
+	client := ent.FromContext(ctx)
+	return client.Note.UpdateOneID(id).SetInput(input).Save(ctx)
 }
 
 // Mutation returns MutationResolver implementation.

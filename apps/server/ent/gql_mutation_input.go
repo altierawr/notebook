@@ -27,3 +27,35 @@ func (c *NoteCreate) SetInput(i CreateNoteInput) *NoteCreate {
 	i.Mutate(c.Mutation())
 	return c
 }
+
+// UpdateNoteInput represents a mutation input for updating notes.
+type UpdateNoteInput struct {
+	Title     *string
+	Content   *string
+	CreatedAt *time.Time
+}
+
+// Mutate applies the UpdateNoteInput on the NoteMutation builder.
+func (i *UpdateNoteInput) Mutate(m *NoteMutation) {
+	if v := i.Title; v != nil {
+		m.SetTitle(*v)
+	}
+	if v := i.Content; v != nil {
+		m.SetContent(*v)
+	}
+	if v := i.CreatedAt; v != nil {
+		m.SetCreatedAt(*v)
+	}
+}
+
+// SetInput applies the change-set in the UpdateNoteInput on the NoteUpdate builder.
+func (c *NoteUpdate) SetInput(i UpdateNoteInput) *NoteUpdate {
+	i.Mutate(c.Mutation())
+	return c
+}
+
+// SetInput applies the change-set in the UpdateNoteInput on the NoteUpdateOne builder.
+func (c *NoteUpdateOne) SetInput(i UpdateNoteInput) *NoteUpdateOne {
+	i.Mutate(c.Mutation())
+	return c
+}
