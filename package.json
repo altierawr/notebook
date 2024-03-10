@@ -1,0 +1,11 @@
+{
+  "name": "notebook",
+  "version": "0.0.0",
+  "description": "",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "altierawr <github.com/altierawr>",
+  "license": "AGPL-3.0"
+}
