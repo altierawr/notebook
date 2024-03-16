@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -39,20 +38,6 @@ func (fu *FolderUpdate) SetTitle(s string) *FolderUpdate {
 func (fu *FolderUpdate) SetNillableTitle(s *string) *FolderUpdate {
 	if s != nil {
 		fu.SetTitle(*s)
-	}
-	return fu
-}
-
-// SetCreatedAt sets the "created_at" field.
-func (fu *FolderUpdate) SetCreatedAt(t time.Time) *FolderUpdate {
-	fu.mutation.SetCreatedAt(t)
-	return fu
-}
-
-// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (fu *FolderUpdate) SetNillableCreatedAt(t *time.Time) *FolderUpdate {
-	if t != nil {
-		fu.SetCreatedAt(*t)
 	}
 	return fu
 }
@@ -197,7 +182,20 @@ func (fu *FolderUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (fu *FolderUpdate) check() error {
+	if v, ok := fu.mutation.Title(); ok {
+		if err := folder.TitleValidator(v); err != nil {
+			return &ValidationError{Name: "title", err: fmt.Errorf(`ent: validator failed for field "Folder.title": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (fu *FolderUpdate) sqlSave(ctx context.Context) (n int, err error) {
+	if err := fu.check(); err != nil {
+		return n, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(folder.Table, folder.Columns, sqlgraph.NewFieldSpec(folder.FieldID, field.TypeInt))
 	if ps := fu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -208,9 +206,6 @@ func (fu *FolderUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := fu.mutation.Title(); ok {
 		_spec.SetField(folder.FieldTitle, field.TypeString, value)
-	}
-	if value, ok := fu.mutation.CreatedAt(); ok {
-		_spec.SetField(folder.FieldCreatedAt, field.TypeTime, value)
 	}
 	if fu.mutation.FoldersCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -381,20 +376,6 @@ func (fuo *FolderUpdateOne) SetNillableTitle(s *string) *FolderUpdateOne {
 	return fuo
 }
 
-// SetCreatedAt sets the "created_at" field.
-func (fuo *FolderUpdateOne) SetCreatedAt(t time.Time) *FolderUpdateOne {
-	fuo.mutation.SetCreatedAt(t)
-	return fuo
-}
-
-// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (fuo *FolderUpdateOne) SetNillableCreatedAt(t *time.Time) *FolderUpdateOne {
-	if t != nil {
-		fuo.SetCreatedAt(*t)
-	}
-	return fuo
-}
-
 // AddFolderIDs adds the "folders" edge to the Folder entity by IDs.
 func (fuo *FolderUpdateOne) AddFolderIDs(ids ...int) *FolderUpdateOne {
 	fuo.mutation.AddFolderIDs(ids...)
@@ -548,7 +529,20 @@ func (fuo *FolderUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (fuo *FolderUpdateOne) check() error {
+	if v, ok := fuo.mutation.Title(); ok {
+		if err := folder.TitleValidator(v); err != nil {
+			return &ValidationError{Name: "title", err: fmt.Errorf(`ent: validator failed for field "Folder.title": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (fuo *FolderUpdateOne) sqlSave(ctx context.Context) (_node *Folder, err error) {
+	if err := fuo.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(folder.Table, folder.Columns, sqlgraph.NewFieldSpec(folder.FieldID, field.TypeInt))
 	id, ok := fuo.mutation.ID()
 	if !ok {
@@ -576,9 +570,6 @@ func (fuo *FolderUpdateOne) sqlSave(ctx context.Context) (_node *Folder, err err
 	}
 	if value, ok := fuo.mutation.Title(); ok {
 		_spec.SetField(folder.FieldTitle, field.TypeString, value)
-	}
-	if value, ok := fuo.mutation.CreatedAt(); ok {
-		_spec.SetField(folder.FieldCreatedAt, field.TypeTime, value)
 	}
 	if fuo.mutation.FoldersCleared() {
 		edge := &sqlgraph.EdgeSpec{

@@ -8,16 +8,24 @@ import (
 	"github.com/99designs/gqlgen/graphql"
 )
 
-func (f *Folder) Folders(ctx context.Context) (result []*Folder, err error) {
-	if fc := graphql.GetFieldContext(ctx); fc != nil && fc.Field.Alias != "" {
-		result, err = f.NamedFolders(graphql.GetFieldContext(ctx).Field.Alias)
-	} else {
-		result, err = f.Edges.FoldersOrErr()
+func (f *Folder) Folders(
+	ctx context.Context, after *Cursor, first *int, before *Cursor, last *int, orderBy []*FolderOrder,
+) (*FolderConnection, error) {
+	opts := []FolderPaginateOption{
+		WithFolderOrder(orderBy),
 	}
-	if IsNotLoaded(err) {
-		result, err = f.QueryFolders().All(ctx)
+	alias := graphql.GetFieldContext(ctx).Field.Alias
+	totalCount, hasTotalCount := f.Edges.totalCount[0][alias]
+	if nodes, err := f.NamedFolders(alias); err == nil || hasTotalCount {
+		pager, err := newFolderPager(opts, last != nil)
+		if err != nil {
+			return nil, err
+		}
+		conn := &FolderConnection{Edges: []*FolderEdge{}, TotalCount: totalCount}
+		conn.build(nodes, pager, after, first, before, last)
+		return conn, nil
 	}
-	return result, err
+	return f.QueryFolders().Paginate(ctx, after, first, before, last, opts...)
 }
 
 func (f *Folder) Parent(ctx context.Context) (result []*Folder, err error) {
@@ -32,16 +40,24 @@ func (f *Folder) Parent(ctx context.Context) (result []*Folder, err error) {
 	return result, err
 }
 
-func (f *Folder) Notes(ctx context.Context) (result []*Note, err error) {
-	if fc := graphql.GetFieldContext(ctx); fc != nil && fc.Field.Alias != "" {
-		result, err = f.NamedNotes(graphql.GetFieldContext(ctx).Field.Alias)
-	} else {
-		result, err = f.Edges.NotesOrErr()
+func (f *Folder) Notes(
+	ctx context.Context, after *Cursor, first *int, before *Cursor, last *int, orderBy []*NoteOrder,
+) (*NoteConnection, error) {
+	opts := []NotePaginateOption{
+		WithNoteOrder(orderBy),
 	}
-	if IsNotLoaded(err) {
-		result, err = f.QueryNotes().All(ctx)
+	alias := graphql.GetFieldContext(ctx).Field.Alias
+	totalCount, hasTotalCount := f.Edges.totalCount[2][alias]
+	if nodes, err := f.NamedNotes(alias); err == nil || hasTotalCount {
+		pager, err := newNotePager(opts, last != nil)
+		if err != nil {
+			return nil, err
+		}
+		conn := &NoteConnection{Edges: []*NoteEdge{}, TotalCount: totalCount}
+		conn.build(nodes, pager, after, first, before, last)
+		return conn, nil
 	}
-	return result, err
+	return f.QueryNotes().Paginate(ctx, after, first, before, last, opts...)
 }
 
 func (n *Note) Parent(ctx context.Context) (result []*Folder, err error) {

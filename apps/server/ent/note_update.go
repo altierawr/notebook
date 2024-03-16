@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -53,20 +52,6 @@ func (nu *NoteUpdate) SetContent(s string) *NoteUpdate {
 func (nu *NoteUpdate) SetNillableContent(s *string) *NoteUpdate {
 	if s != nil {
 		nu.SetContent(*s)
-	}
-	return nu
-}
-
-// SetCreatedAt sets the "created_at" field.
-func (nu *NoteUpdate) SetCreatedAt(t time.Time) *NoteUpdate {
-	nu.mutation.SetCreatedAt(t)
-	return nu
-}
-
-// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (nu *NoteUpdate) SetNillableCreatedAt(t *time.Time) *NoteUpdate {
-	if t != nil {
-		nu.SetCreatedAt(*t)
 	}
 	return nu
 }
@@ -139,7 +124,20 @@ func (nu *NoteUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (nu *NoteUpdate) check() error {
+	if v, ok := nu.mutation.Title(); ok {
+		if err := note.TitleValidator(v); err != nil {
+			return &ValidationError{Name: "title", err: fmt.Errorf(`ent: validator failed for field "Note.title": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (nu *NoteUpdate) sqlSave(ctx context.Context) (n int, err error) {
+	if err := nu.check(); err != nil {
+		return n, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(note.Table, note.Columns, sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt))
 	if ps := nu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -153,9 +151,6 @@ func (nu *NoteUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := nu.mutation.Content(); ok {
 		_spec.SetField(note.FieldContent, field.TypeString, value)
-	}
-	if value, ok := nu.mutation.CreatedAt(); ok {
-		_spec.SetField(note.FieldCreatedAt, field.TypeTime, value)
 	}
 	if nu.mutation.ParentCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -250,20 +245,6 @@ func (nuo *NoteUpdateOne) SetNillableContent(s *string) *NoteUpdateOne {
 	return nuo
 }
 
-// SetCreatedAt sets the "created_at" field.
-func (nuo *NoteUpdateOne) SetCreatedAt(t time.Time) *NoteUpdateOne {
-	nuo.mutation.SetCreatedAt(t)
-	return nuo
-}
-
-// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (nuo *NoteUpdateOne) SetNillableCreatedAt(t *time.Time) *NoteUpdateOne {
-	if t != nil {
-		nuo.SetCreatedAt(*t)
-	}
-	return nuo
-}
-
 // AddParentIDs adds the "parent" edge to the Folder entity by IDs.
 func (nuo *NoteUpdateOne) AddParentIDs(ids ...int) *NoteUpdateOne {
 	nuo.mutation.AddParentIDs(ids...)
@@ -345,7 +326,20 @@ func (nuo *NoteUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (nuo *NoteUpdateOne) check() error {
+	if v, ok := nuo.mutation.Title(); ok {
+		if err := note.TitleValidator(v); err != nil {
+			return &ValidationError{Name: "title", err: fmt.Errorf(`ent: validator failed for field "Note.title": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (nuo *NoteUpdateOne) sqlSave(ctx context.Context) (_node *Note, err error) {
+	if err := nuo.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(note.Table, note.Columns, sqlgraph.NewFieldSpec(note.FieldID, field.TypeInt))
 	id, ok := nuo.mutation.ID()
 	if !ok {
@@ -376,9 +370,6 @@ func (nuo *NoteUpdateOne) sqlSave(ctx context.Context) (_node *Note, err error) 
 	}
 	if value, ok := nuo.mutation.Content(); ok {
 		_spec.SetField(note.FieldContent, field.TypeString, value)
-	}
-	if value, ok := nuo.mutation.CreatedAt(); ok {
-		_spec.SetField(note.FieldCreatedAt, field.TypeTime, value)
 	}
 	if nuo.mutation.ParentCleared() {
 		edge := &sqlgraph.EdgeSpec{

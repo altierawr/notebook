@@ -41,7 +41,6 @@ func (c *FolderCreate) SetInput(i CreateFolderInput) *FolderCreate {
 // UpdateFolderInput represents a mutation input for updating folders.
 type UpdateFolderInput struct {
 	Title           *string
-	CreatedAt       *time.Time
 	ClearFolders    bool
 	AddFolderIDs    []int
 	RemoveFolderIDs []int
@@ -57,9 +56,6 @@ type UpdateFolderInput struct {
 func (i *UpdateFolderInput) Mutate(m *FolderMutation) {
 	if v := i.Title; v != nil {
 		m.SetTitle(*v)
-	}
-	if v := i.CreatedAt; v != nil {
-		m.SetCreatedAt(*v)
 	}
 	if i.ClearFolders {
 		m.ClearFolders()
@@ -134,7 +130,6 @@ func (c *NoteCreate) SetInput(i CreateNoteInput) *NoteCreate {
 type UpdateNoteInput struct {
 	Title           *string
 	Content         *string
-	CreatedAt       *time.Time
 	ClearParent     bool
 	AddParentIDs    []int
 	RemoveParentIDs []int
@@ -147,9 +142,6 @@ func (i *UpdateNoteInput) Mutate(m *NoteMutation) {
 	}
 	if v := i.Content; v != nil {
 		m.SetContent(*v)
-	}
-	if v := i.CreatedAt; v != nil {
-		m.SetCreatedAt(*v)
 	}
 	if i.ClearParent {
 		m.ClearParent()

@@ -7,6 +7,7 @@ package notebook
 import (
 	"context"
 
+	"entgo.io/contrib/entgql"
 	"github.com/altierawr/notebook/ent"
 )
 
@@ -21,13 +22,15 @@ func (r *queryResolver) Nodes(ctx context.Context, ids []int) ([]ent.Noder, erro
 }
 
 // Folders is the resolver for the folders field.
-func (r *queryResolver) Folders(ctx context.Context) ([]*ent.Folder, error) {
-	return r.client.Folder.Query().All(ctx)
+func (r *queryResolver) Folders(ctx context.Context, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy []*ent.FolderOrder) (*ent.FolderConnection, error) {
+	return r.client.Folder.Query().
+		Paginate(ctx, after, first, before, last, ent.WithFolderOrder(orderBy))
 }
 
 // Notes is the resolver for the notes field.
-func (r *queryResolver) Notes(ctx context.Context) ([]*ent.Note, error) {
-	return r.client.Note.Query().All(ctx)
+func (r *queryResolver) Notes(ctx context.Context, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy []*ent.NoteOrder) (*ent.NoteConnection, error) {
+	return r.client.Note.Query().
+		Paginate(ctx, after, first, before, last, ent.WithNoteOrder(orderBy))
 }
 
 // Query returns QueryResolver implementation.

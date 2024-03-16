@@ -132,6 +132,11 @@ func (fc *FolderCreate) check() error {
 	if _, ok := fc.mutation.Title(); !ok {
 		return &ValidationError{Name: "title", err: errors.New(`ent: missing required field "Folder.title"`)}
 	}
+	if v, ok := fc.mutation.Title(); ok {
+		if err := folder.TitleValidator(v); err != nil {
+			return &ValidationError{Name: "title", err: fmt.Errorf(`ent: validator failed for field "Folder.title": %w`, err)}
+		}
+	}
 	if _, ok := fc.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Folder.created_at"`)}
 	}

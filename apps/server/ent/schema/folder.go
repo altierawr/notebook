@@ -18,25 +18,43 @@ type Folder struct {
 // Fields of the Folder.
 func (Folder) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("title"),
+		field.String("title").
+			NotEmpty().
+			Annotations(
+				entgql.OrderField("TITLE"),
+			),
 		field.Time("created_at").
-			Default(time.Now),
+			Default(time.Now).
+			Immutable().
+			Annotations(
+				entgql.OrderField("CREATED_AT"),
+			),
 	}
 }
 
 // Edges of the Folder.
 func (Folder) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("folders", Folder.Type),
+		edge.To("folders", Folder.Type).
+			Annotations(
+				entgql.RelayConnection(),
+				entgql.OrderField("FOLDERS_COUNT"),
+			),
 		edge.From("parent", Folder.Type).
 			Ref("folders"),
-		edge.To("notes", Note.Type),
+		edge.To("notes", Note.Type).
+			Annotations(
+				entgql.RelayConnection(),
+				entgql.OrderField("NOTES_COUNT"),
+			),
 	}
 }
 
 func (Folder) Annotations() []schema.Annotation {
 	return []schema.Annotation{
+		entgql.RelayConnection(),
 		entgql.QueryField(),
+		entgql.MultiOrder(),
 		entgql.Mutations(entgql.MutationCreate(), entgql.MutationUpdate()),
 	}
 }

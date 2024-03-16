@@ -120,6 +120,11 @@ func (nc *NoteCreate) check() error {
 	if _, ok := nc.mutation.Title(); !ok {
 		return &ValidationError{Name: "title", err: errors.New(`ent: missing required field "Note.title"`)}
 	}
+	if v, ok := nc.mutation.Title(); ok {
+		if err := note.TitleValidator(v); err != nil {
+			return &ValidationError{Name: "title", err: fmt.Errorf(`ent: validator failed for field "Note.title": %w`, err)}
+		}
+	}
 	if _, ok := nc.mutation.Content(); !ok {
 		return &ValidationError{Name: "content", err: errors.New(`ent: missing required field "Note.content"`)}
 	}

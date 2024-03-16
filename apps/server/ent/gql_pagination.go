@@ -5,6 +5,9 @@ package ent
 import (
 	"context"
 	"errors"
+	"fmt"
+	"io"
+	"strconv"
 
 	"entgo.io/contrib/entgql"
 	"entgo.io/ent"
@@ -151,19 +154,14 @@ func (c *FolderConnection) build(nodes []*Folder, pager *folderPager, after *Cur
 type FolderPaginateOption func(*folderPager) error
 
 // WithFolderOrder configures pagination ordering.
-func WithFolderOrder(order *FolderOrder) FolderPaginateOption {
-	if order == nil {
-		order = DefaultFolderOrder
-	}
-	o := *order
+func WithFolderOrder(order []*FolderOrder) FolderPaginateOption {
 	return func(pager *folderPager) error {
-		if err := o.Direction.Validate(); err != nil {
-			return err
+		for _, o := range order {
+			if err := o.Direction.Validate(); err != nil {
+				return err
+			}
 		}
-		if o.Field == nil {
-			o.Field = DefaultFolderOrder.Field
-		}
-		pager.order = &o
+		pager.order = append(pager.order, order...)
 		return nil
 	}
 }
@@ -181,7 +179,7 @@ func WithFolderFilter(filter func(*FolderQuery) (*FolderQuery, error)) FolderPag
 
 type folderPager struct {
 	reverse bool
-	order   *FolderOrder
+	order   []*FolderOrder
 	filter  func(*FolderQuery) (*FolderQuery, error)
 }
 
@@ -192,8 +190,10 @@ func newFolderPager(opts []FolderPaginateOption, reverse bool) (*folderPager, er
 			return nil, err
 		}
 	}
-	if pager.order == nil {
-		pager.order = DefaultFolderOrder
+	for i, o := range pager.order {
+		if i > 0 && o.Field == pager.order[i-1].Field {
+			return nil, fmt.Errorf("duplicate order direction %q", o.Direction)
+		}
 	}
 	return pager, nil
 }
@@ -206,48 +206,100 @@ func (p *folderPager) applyFilter(query *FolderQuery) (*FolderQuery, error) {
 }
 
 func (p *folderPager) toCursor(f *Folder) Cursor {
-	return p.order.Field.toCursor(f)
+	cs := make([]any, 0, len(p.order))
+	for _, po := range p.order {
+		cs = append(cs, po.Field.toCursor(f).Value)
+	}
+	return Cursor{ID: f.ID, Value: cs}
 }
 
 func (p *folderPager) applyCursors(query *FolderQuery, after, before *Cursor) (*FolderQuery, error) {
-	direction := p.order.Direction
+	idDirection := entgql.OrderDirectionAsc
 	if p.reverse {
-		direction = direction.Reverse()
+		idDirection = entgql.OrderDirectionDesc
 	}
-	for _, predicate := range entgql.CursorsPredicate(after, before, DefaultFolderOrder.Field.column, p.order.Field.column, direction) {
+	fields, directions := make([]string, 0, len(p.order)), make([]OrderDirection, 0, len(p.order))
+	for _, o := range p.order {
+		fields = append(fields, o.Field.column)
+		direction := o.Direction
+		if p.reverse {
+			direction = direction.Reverse()
+		}
+		directions = append(directions, direction)
+	}
+	predicates, err := entgql.MultiCursorsPredicate(after, before, &entgql.MultiCursorsOptions{
+		FieldID:     DefaultFolderOrder.Field.column,
+		DirectionID: idDirection,
+		Fields:      fields,
+		Directions:  directions,
+	})
+	if err != nil {
+		return nil, err
+	}
+	for _, predicate := range predicates {
 		query = query.Where(predicate)
 	}
 	return query, nil
 }
 
 func (p *folderPager) applyOrder(query *FolderQuery) *FolderQuery {
-	direction := p.order.Direction
-	if p.reverse {
-		direction = direction.Reverse()
+	var defaultOrdered bool
+	for _, o := range p.order {
+		direction := o.Direction
+		if p.reverse {
+			direction = direction.Reverse()
+		}
+		query = query.Order(o.Field.toTerm(direction.OrderTermOption()))
+		if o.Field.column == DefaultFolderOrder.Field.column {
+			defaultOrdered = true
+		}
+		switch o.Field.column {
+		case FolderOrderFieldFoldersCount.column, FolderOrderFieldNotesCount.column:
+		default:
+			if len(query.ctx.Fields) > 0 {
+				query.ctx.AppendFieldOnce(o.Field.column)
+			}
+		}
 	}
-	query = query.Order(p.order.Field.toTerm(direction.OrderTermOption()))
-	if p.order.Field != DefaultFolderOrder.Field {
+	if !defaultOrdered {
+		direction := entgql.OrderDirectionAsc
+		if p.reverse {
+			direction = direction.Reverse()
+		}
 		query = query.Order(DefaultFolderOrder.Field.toTerm(direction.OrderTermOption()))
-	}
-	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(p.order.Field.column)
 	}
 	return query
 }
 
 func (p *folderPager) orderExpr(query *FolderQuery) sql.Querier {
-	direction := p.order.Direction
-	if p.reverse {
-		direction = direction.Reverse()
-	}
-	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(p.order.Field.column)
+	for _, o := range p.order {
+		switch o.Field.column {
+		case FolderOrderFieldFoldersCount.column, FolderOrderFieldNotesCount.column:
+			direction := o.Direction
+			if p.reverse {
+				direction = direction.Reverse()
+			}
+			query = query.Order(o.Field.toTerm(direction.OrderTermOption()))
+		default:
+			if len(query.ctx.Fields) > 0 {
+				query.ctx.AppendFieldOnce(o.Field.column)
+			}
+		}
 	}
 	return sql.ExprFunc(func(b *sql.Builder) {
-		b.Ident(p.order.Field.column).Pad().WriteString(string(direction))
-		if p.order.Field != DefaultFolderOrder.Field {
-			b.Comma().Ident(DefaultFolderOrder.Field.column).Pad().WriteString(string(direction))
+		for _, o := range p.order {
+			direction := o.Direction
+			if p.reverse {
+				direction = direction.Reverse()
+			}
+			b.Ident(o.Field.column).Pad().WriteString(string(direction))
+			b.Comma()
 		}
+		direction := entgql.OrderDirectionAsc
+		if p.reverse {
+			direction = direction.Reverse()
+		}
+		b.Ident(DefaultFolderOrder.Field.column).Pad().WriteString(string(direction))
 	})
 }
 
@@ -301,6 +353,117 @@ func (f *FolderQuery) Paginate(
 	}
 	conn.build(nodes, pager, after, first, before, last)
 	return conn, nil
+}
+
+var (
+	// FolderOrderFieldTitle orders Folder by title.
+	FolderOrderFieldTitle = &FolderOrderField{
+		Value: func(f *Folder) (ent.Value, error) {
+			return f.Title, nil
+		},
+		column: folder.FieldTitle,
+		toTerm: folder.ByTitle,
+		toCursor: func(f *Folder) Cursor {
+			return Cursor{
+				ID:    f.ID,
+				Value: f.Title,
+			}
+		},
+	}
+	// FolderOrderFieldCreatedAt orders Folder by created_at.
+	FolderOrderFieldCreatedAt = &FolderOrderField{
+		Value: func(f *Folder) (ent.Value, error) {
+			return f.CreatedAt, nil
+		},
+		column: folder.FieldCreatedAt,
+		toTerm: folder.ByCreatedAt,
+		toCursor: func(f *Folder) Cursor {
+			return Cursor{
+				ID:    f.ID,
+				Value: f.CreatedAt,
+			}
+		},
+	}
+	// FolderOrderFieldFoldersCount orders by FOLDERS_COUNT.
+	FolderOrderFieldFoldersCount = &FolderOrderField{
+		Value: func(f *Folder) (ent.Value, error) {
+			return f.Value("folders_count")
+		},
+		column: "folders_count",
+		toTerm: func(opts ...sql.OrderTermOption) folder.OrderOption {
+			return folder.ByFoldersCount(
+				append(opts, sql.OrderSelectAs("folders_count"))...,
+			)
+		},
+		toCursor: func(f *Folder) Cursor {
+			cv, _ := f.Value("folders_count")
+			return Cursor{
+				ID:    f.ID,
+				Value: cv,
+			}
+		},
+	}
+	// FolderOrderFieldNotesCount orders by NOTES_COUNT.
+	FolderOrderFieldNotesCount = &FolderOrderField{
+		Value: func(f *Folder) (ent.Value, error) {
+			return f.Value("notes_count")
+		},
+		column: "notes_count",
+		toTerm: func(opts ...sql.OrderTermOption) folder.OrderOption {
+			return folder.ByNotesCount(
+				append(opts, sql.OrderSelectAs("notes_count"))...,
+			)
+		},
+		toCursor: func(f *Folder) Cursor {
+			cv, _ := f.Value("notes_count")
+			return Cursor{
+				ID:    f.ID,
+				Value: cv,
+			}
+		},
+	}
+)
+
+// String implement fmt.Stringer interface.
+func (f FolderOrderField) String() string {
+	var str string
+	switch f.column {
+	case FolderOrderFieldTitle.column:
+		str = "TITLE"
+	case FolderOrderFieldCreatedAt.column:
+		str = "CREATED_AT"
+	case FolderOrderFieldFoldersCount.column:
+		str = "FOLDERS_COUNT"
+	case FolderOrderFieldNotesCount.column:
+		str = "NOTES_COUNT"
+	}
+	return str
+}
+
+// MarshalGQL implements graphql.Marshaler interface.
+func (f FolderOrderField) MarshalGQL(w io.Writer) {
+	io.WriteString(w, strconv.Quote(f.String()))
+}
+
+// UnmarshalGQL implements graphql.Unmarshaler interface.
+func (f *FolderOrderField) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("FolderOrderField %T must be a string", v)
+	}
+	switch str {
+	case "TITLE":
+		*f = *FolderOrderFieldTitle
+	case "CREATED_AT":
+		*f = *FolderOrderFieldCreatedAt
+	case "FOLDERS_COUNT":
+		*f = *FolderOrderFieldFoldersCount
+	case "NOTES_COUNT":
+		*f = *FolderOrderFieldNotesCount
+	default:
+		return fmt.Errorf("%s is not a valid FolderOrderField", str)
+	}
+	return nil
 }
 
 // FolderOrderField defines the ordering field of Folder.
@@ -399,19 +562,14 @@ func (c *NoteConnection) build(nodes []*Note, pager *notePager, after *Cursor, f
 type NotePaginateOption func(*notePager) error
 
 // WithNoteOrder configures pagination ordering.
-func WithNoteOrder(order *NoteOrder) NotePaginateOption {
-	if order == nil {
-		order = DefaultNoteOrder
-	}
-	o := *order
+func WithNoteOrder(order []*NoteOrder) NotePaginateOption {
 	return func(pager *notePager) error {
-		if err := o.Direction.Validate(); err != nil {
-			return err
+		for _, o := range order {
+			if err := o.Direction.Validate(); err != nil {
+				return err
+			}
 		}
-		if o.Field == nil {
-			o.Field = DefaultNoteOrder.Field
-		}
-		pager.order = &o
+		pager.order = append(pager.order, order...)
 		return nil
 	}
 }
@@ -429,7 +587,7 @@ func WithNoteFilter(filter func(*NoteQuery) (*NoteQuery, error)) NotePaginateOpt
 
 type notePager struct {
 	reverse bool
-	order   *NoteOrder
+	order   []*NoteOrder
 	filter  func(*NoteQuery) (*NoteQuery, error)
 }
 
@@ -440,8 +598,10 @@ func newNotePager(opts []NotePaginateOption, reverse bool) (*notePager, error) {
 			return nil, err
 		}
 	}
-	if pager.order == nil {
-		pager.order = DefaultNoteOrder
+	for i, o := range pager.order {
+		if i > 0 && o.Field == pager.order[i-1].Field {
+			return nil, fmt.Errorf("duplicate order direction %q", o.Direction)
+		}
 	}
 	return pager, nil
 }
@@ -454,48 +614,87 @@ func (p *notePager) applyFilter(query *NoteQuery) (*NoteQuery, error) {
 }
 
 func (p *notePager) toCursor(n *Note) Cursor {
-	return p.order.Field.toCursor(n)
+	cs := make([]any, 0, len(p.order))
+	for _, po := range p.order {
+		cs = append(cs, po.Field.toCursor(n).Value)
+	}
+	return Cursor{ID: n.ID, Value: cs}
 }
 
 func (p *notePager) applyCursors(query *NoteQuery, after, before *Cursor) (*NoteQuery, error) {
-	direction := p.order.Direction
+	idDirection := entgql.OrderDirectionAsc
 	if p.reverse {
-		direction = direction.Reverse()
+		idDirection = entgql.OrderDirectionDesc
 	}
-	for _, predicate := range entgql.CursorsPredicate(after, before, DefaultNoteOrder.Field.column, p.order.Field.column, direction) {
+	fields, directions := make([]string, 0, len(p.order)), make([]OrderDirection, 0, len(p.order))
+	for _, o := range p.order {
+		fields = append(fields, o.Field.column)
+		direction := o.Direction
+		if p.reverse {
+			direction = direction.Reverse()
+		}
+		directions = append(directions, direction)
+	}
+	predicates, err := entgql.MultiCursorsPredicate(after, before, &entgql.MultiCursorsOptions{
+		FieldID:     DefaultNoteOrder.Field.column,
+		DirectionID: idDirection,
+		Fields:      fields,
+		Directions:  directions,
+	})
+	if err != nil {
+		return nil, err
+	}
+	for _, predicate := range predicates {
 		query = query.Where(predicate)
 	}
 	return query, nil
 }
 
 func (p *notePager) applyOrder(query *NoteQuery) *NoteQuery {
-	direction := p.order.Direction
-	if p.reverse {
-		direction = direction.Reverse()
+	var defaultOrdered bool
+	for _, o := range p.order {
+		direction := o.Direction
+		if p.reverse {
+			direction = direction.Reverse()
+		}
+		query = query.Order(o.Field.toTerm(direction.OrderTermOption()))
+		if o.Field.column == DefaultNoteOrder.Field.column {
+			defaultOrdered = true
+		}
+		if len(query.ctx.Fields) > 0 {
+			query.ctx.AppendFieldOnce(o.Field.column)
+		}
 	}
-	query = query.Order(p.order.Field.toTerm(direction.OrderTermOption()))
-	if p.order.Field != DefaultNoteOrder.Field {
+	if !defaultOrdered {
+		direction := entgql.OrderDirectionAsc
+		if p.reverse {
+			direction = direction.Reverse()
+		}
 		query = query.Order(DefaultNoteOrder.Field.toTerm(direction.OrderTermOption()))
-	}
-	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(p.order.Field.column)
 	}
 	return query
 }
 
 func (p *notePager) orderExpr(query *NoteQuery) sql.Querier {
-	direction := p.order.Direction
-	if p.reverse {
-		direction = direction.Reverse()
-	}
 	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(p.order.Field.column)
+		for _, o := range p.order {
+			query.ctx.AppendFieldOnce(o.Field.column)
+		}
 	}
 	return sql.ExprFunc(func(b *sql.Builder) {
-		b.Ident(p.order.Field.column).Pad().WriteString(string(direction))
-		if p.order.Field != DefaultNoteOrder.Field {
-			b.Comma().Ident(DefaultNoteOrder.Field.column).Pad().WriteString(string(direction))
+		for _, o := range p.order {
+			direction := o.Direction
+			if p.reverse {
+				direction = direction.Reverse()
+			}
+			b.Ident(o.Field.column).Pad().WriteString(string(direction))
+			b.Comma()
 		}
+		direction := entgql.OrderDirectionAsc
+		if p.reverse {
+			direction = direction.Reverse()
+		}
+		b.Ident(DefaultNoteOrder.Field.column).Pad().WriteString(string(direction))
 	})
 }
 
@@ -549,6 +748,89 @@ func (n *NoteQuery) Paginate(
 	}
 	conn.build(nodes, pager, after, first, before, last)
 	return conn, nil
+}
+
+var (
+	// NoteOrderFieldTitle orders Note by title.
+	NoteOrderFieldTitle = &NoteOrderField{
+		Value: func(n *Note) (ent.Value, error) {
+			return n.Title, nil
+		},
+		column: note.FieldTitle,
+		toTerm: note.ByTitle,
+		toCursor: func(n *Note) Cursor {
+			return Cursor{
+				ID:    n.ID,
+				Value: n.Title,
+			}
+		},
+	}
+	// NoteOrderFieldContent orders Note by content.
+	NoteOrderFieldContent = &NoteOrderField{
+		Value: func(n *Note) (ent.Value, error) {
+			return n.Content, nil
+		},
+		column: note.FieldContent,
+		toTerm: note.ByContent,
+		toCursor: func(n *Note) Cursor {
+			return Cursor{
+				ID:    n.ID,
+				Value: n.Content,
+			}
+		},
+	}
+	// NoteOrderFieldCreatedAt orders Note by created_at.
+	NoteOrderFieldCreatedAt = &NoteOrderField{
+		Value: func(n *Note) (ent.Value, error) {
+			return n.CreatedAt, nil
+		},
+		column: note.FieldCreatedAt,
+		toTerm: note.ByCreatedAt,
+		toCursor: func(n *Note) Cursor {
+			return Cursor{
+				ID:    n.ID,
+				Value: n.CreatedAt,
+			}
+		},
+	}
+)
+
+// String implement fmt.Stringer interface.
+func (f NoteOrderField) String() string {
+	var str string
+	switch f.column {
+	case NoteOrderFieldTitle.column:
+		str = "TITLE"
+	case NoteOrderFieldContent.column:
+		str = "CONTENT"
+	case NoteOrderFieldCreatedAt.column:
+		str = "CREATED_AT"
+	}
+	return str
+}
+
+// MarshalGQL implements graphql.Marshaler interface.
+func (f NoteOrderField) MarshalGQL(w io.Writer) {
+	io.WriteString(w, strconv.Quote(f.String()))
+}
+
+// UnmarshalGQL implements graphql.Unmarshaler interface.
+func (f *NoteOrderField) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("NoteOrderField %T must be a string", v)
+	}
+	switch str {
+	case "TITLE":
+		*f = *NoteOrderFieldTitle
+	case "CONTENT":
+		*f = *NoteOrderFieldContent
+	case "CREATED_AT":
+		*f = *NoteOrderFieldCreatedAt
+	default:
+		return fmt.Errorf("%s is not a valid NoteOrderField", str)
+	}
+	return nil
 }
 
 // NoteOrderField defines the ordering field of Note.

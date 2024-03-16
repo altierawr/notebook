@@ -51,11 +51,22 @@ type DirectiveRoot struct {
 type ComplexityRoot struct {
 	Folder struct {
 		CreatedAt func(childComplexity int) int
-		Folders   func(childComplexity int) int
+		Folders   func(childComplexity int, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy []*ent.FolderOrder) int
 		ID        func(childComplexity int) int
-		Notes     func(childComplexity int) int
+		Notes     func(childComplexity int, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy []*ent.NoteOrder) int
 		Parent    func(childComplexity int) int
 		Title     func(childComplexity int) int
+	}
+
+	FolderConnection struct {
+		Edges      func(childComplexity int) int
+		PageInfo   func(childComplexity int) int
+		TotalCount func(childComplexity int) int
+	}
+
+	FolderEdge struct {
+		Cursor func(childComplexity int) int
+		Node   func(childComplexity int) int
 	}
 
 	Mutation struct {
@@ -73,6 +84,17 @@ type ComplexityRoot struct {
 		Title     func(childComplexity int) int
 	}
 
+	NoteConnection struct {
+		Edges      func(childComplexity int) int
+		PageInfo   func(childComplexity int) int
+		TotalCount func(childComplexity int) int
+	}
+
+	NoteEdge struct {
+		Cursor func(childComplexity int) int
+		Node   func(childComplexity int) int
+	}
+
 	PageInfo struct {
 		EndCursor       func(childComplexity int) int
 		HasNextPage     func(childComplexity int) int
@@ -81,10 +103,10 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Folders func(childComplexity int) int
+		Folders func(childComplexity int, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy []*ent.FolderOrder) int
 		Node    func(childComplexity int, id int) int
 		Nodes   func(childComplexity int, ids []int) int
-		Notes   func(childComplexity int) int
+		Notes   func(childComplexity int, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy []*ent.NoteOrder) int
 	}
 }
 
@@ -97,8 +119,8 @@ type MutationResolver interface {
 type QueryResolver interface {
 	Node(ctx context.Context, id int) (ent.Noder, error)
 	Nodes(ctx context.Context, ids []int) ([]ent.Noder, error)
-	Folders(ctx context.Context) ([]*ent.Folder, error)
-	Notes(ctx context.Context) ([]*ent.Note, error)
+	Folders(ctx context.Context, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy []*ent.FolderOrder) (*ent.FolderConnection, error)
+	Notes(ctx context.Context, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy []*ent.NoteOrder) (*ent.NoteConnection, error)
 }
 
 type executableSchema struct {
@@ -132,7 +154,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Folder.Folders(childComplexity), true
+		args, err := ec.field_Folder_folders_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Folder.Folders(childComplexity, args["after"].(*entgql.Cursor[int]), args["first"].(*int), args["before"].(*entgql.Cursor[int]), args["last"].(*int), args["orderBy"].([]*ent.FolderOrder)), true
 
 	case "Folder.id":
 		if e.complexity.Folder.ID == nil {
@@ -146,7 +173,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Folder.Notes(childComplexity), true
+		args, err := ec.field_Folder_notes_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Folder.Notes(childComplexity, args["after"].(*entgql.Cursor[int]), args["first"].(*int), args["before"].(*entgql.Cursor[int]), args["last"].(*int), args["orderBy"].([]*ent.NoteOrder)), true
 
 	case "Folder.parent":
 		if e.complexity.Folder.Parent == nil {
@@ -161,6 +193,41 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Folder.Title(childComplexity), true
+
+	case "FolderConnection.edges":
+		if e.complexity.FolderConnection.Edges == nil {
+			break
+		}
+
+		return e.complexity.FolderConnection.Edges(childComplexity), true
+
+	case "FolderConnection.pageInfo":
+		if e.complexity.FolderConnection.PageInfo == nil {
+			break
+		}
+
+		return e.complexity.FolderConnection.PageInfo(childComplexity), true
+
+	case "FolderConnection.totalCount":
+		if e.complexity.FolderConnection.TotalCount == nil {
+			break
+		}
+
+		return e.complexity.FolderConnection.TotalCount(childComplexity), true
+
+	case "FolderEdge.cursor":
+		if e.complexity.FolderEdge.Cursor == nil {
+			break
+		}
+
+		return e.complexity.FolderEdge.Cursor(childComplexity), true
+
+	case "FolderEdge.node":
+		if e.complexity.FolderEdge.Node == nil {
+			break
+		}
+
+		return e.complexity.FolderEdge.Node(childComplexity), true
 
 	case "Mutation.createFolder":
 		if e.complexity.Mutation.CreateFolder == nil {
@@ -245,6 +312,41 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Note.Title(childComplexity), true
 
+	case "NoteConnection.edges":
+		if e.complexity.NoteConnection.Edges == nil {
+			break
+		}
+
+		return e.complexity.NoteConnection.Edges(childComplexity), true
+
+	case "NoteConnection.pageInfo":
+		if e.complexity.NoteConnection.PageInfo == nil {
+			break
+		}
+
+		return e.complexity.NoteConnection.PageInfo(childComplexity), true
+
+	case "NoteConnection.totalCount":
+		if e.complexity.NoteConnection.TotalCount == nil {
+			break
+		}
+
+		return e.complexity.NoteConnection.TotalCount(childComplexity), true
+
+	case "NoteEdge.cursor":
+		if e.complexity.NoteEdge.Cursor == nil {
+			break
+		}
+
+		return e.complexity.NoteEdge.Cursor(childComplexity), true
+
+	case "NoteEdge.node":
+		if e.complexity.NoteEdge.Node == nil {
+			break
+		}
+
+		return e.complexity.NoteEdge.Node(childComplexity), true
+
 	case "PageInfo.endCursor":
 		if e.complexity.PageInfo.EndCursor == nil {
 			break
@@ -278,7 +380,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Query.Folders(childComplexity), true
+		args, err := ec.field_Query_folders_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Folders(childComplexity, args["after"].(*entgql.Cursor[int]), args["first"].(*int), args["before"].(*entgql.Cursor[int]), args["last"].(*int), args["orderBy"].([]*ent.FolderOrder)), true
 
 	case "Query.node":
 		if e.complexity.Query.Node == nil {
@@ -309,7 +416,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Query.Notes(childComplexity), true
+		args, err := ec.field_Query_notes_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Notes(childComplexity, args["after"].(*entgql.Cursor[int]), args["first"].(*int), args["before"].(*entgql.Cursor[int]), args["last"].(*int), args["orderBy"].([]*ent.NoteOrder)), true
 
 	}
 	return 0, false
@@ -321,6 +433,8 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
 		ec.unmarshalInputCreateFolderInput,
 		ec.unmarshalInputCreateNoteInput,
+		ec.unmarshalInputFolderOrder,
+		ec.unmarshalInputNoteOrder,
 		ec.unmarshalInputUpdateFolderInput,
 		ec.unmarshalInputUpdateNoteInput,
 	)
@@ -440,6 +554,108 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
 // region    ***************************** args.gotpl *****************************
 
+func (ec *executionContext) field_Folder_folders_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *entgql.Cursor[int]
+	if tmp, ok := rawArgs["after"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+		arg0, err = ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["after"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["first"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["first"] = arg1
+	var arg2 *entgql.Cursor[int]
+	if tmp, ok := rawArgs["before"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("before"))
+		arg2, err = ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["before"] = arg2
+	var arg3 *int
+	if tmp, ok := rawArgs["last"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("last"))
+		arg3, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["last"] = arg3
+	var arg4 []*ent.FolderOrder
+	if tmp, ok := rawArgs["orderBy"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("orderBy"))
+		arg4, err = ec.unmarshalOFolderOrder2ᚕᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐFolderOrderᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["orderBy"] = arg4
+	return args, nil
+}
+
+func (ec *executionContext) field_Folder_notes_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *entgql.Cursor[int]
+	if tmp, ok := rawArgs["after"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+		arg0, err = ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["after"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["first"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["first"] = arg1
+	var arg2 *entgql.Cursor[int]
+	if tmp, ok := rawArgs["before"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("before"))
+		arg2, err = ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["before"] = arg2
+	var arg3 *int
+	if tmp, ok := rawArgs["last"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("last"))
+		arg3, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["last"] = arg3
+	var arg4 []*ent.NoteOrder
+	if tmp, ok := rawArgs["orderBy"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("orderBy"))
+		arg4, err = ec.unmarshalONoteOrder2ᚕᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐNoteOrderᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["orderBy"] = arg4
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_createFolder_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -533,6 +749,57 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_folders_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *entgql.Cursor[int]
+	if tmp, ok := rawArgs["after"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+		arg0, err = ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["after"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["first"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["first"] = arg1
+	var arg2 *entgql.Cursor[int]
+	if tmp, ok := rawArgs["before"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("before"))
+		arg2, err = ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["before"] = arg2
+	var arg3 *int
+	if tmp, ok := rawArgs["last"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("last"))
+		arg3, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["last"] = arg3
+	var arg4 []*ent.FolderOrder
+	if tmp, ok := rawArgs["orderBy"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("orderBy"))
+		arg4, err = ec.unmarshalOFolderOrder2ᚕᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐFolderOrderᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["orderBy"] = arg4
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_node_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -560,6 +827,57 @@ func (ec *executionContext) field_Query_nodes_args(ctx context.Context, rawArgs 
 		}
 	}
 	args["ids"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_notes_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *entgql.Cursor[int]
+	if tmp, ok := rawArgs["after"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+		arg0, err = ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["after"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["first"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["first"] = arg1
+	var arg2 *entgql.Cursor[int]
+	if tmp, ok := rawArgs["before"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("before"))
+		arg2, err = ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["before"] = arg2
+	var arg3 *int
+	if tmp, ok := rawArgs["last"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("last"))
+		arg3, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["last"] = arg3
+	var arg4 []*ent.NoteOrder
+	if tmp, ok := rawArgs["orderBy"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("orderBy"))
+		arg4, err = ec.unmarshalONoteOrder2ᚕᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐNoteOrderᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["orderBy"] = arg4
 	return args, nil
 }
 
@@ -747,18 +1065,21 @@ func (ec *executionContext) _Folder_folders(ctx context.Context, field graphql.C
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Folders(ctx)
+		return obj.Folders(ctx, fc.Args["after"].(*entgql.Cursor[int]), fc.Args["first"].(*int), fc.Args["before"].(*entgql.Cursor[int]), fc.Args["last"].(*int), fc.Args["orderBy"].([]*ent.FolderOrder))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.([]*ent.Folder)
+	res := resTmp.(*ent.FolderConnection)
 	fc.Result = res
-	return ec.marshalOFolder2ᚕᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐFolderᚄ(ctx, field.Selections, res)
+	return ec.marshalNFolderConnection2ᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐFolderConnection(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Folder_folders(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -769,21 +1090,26 @@ func (ec *executionContext) fieldContext_Folder_folders(ctx context.Context, fie
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "id":
-				return ec.fieldContext_Folder_id(ctx, field)
-			case "title":
-				return ec.fieldContext_Folder_title(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_Folder_createdAt(ctx, field)
-			case "folders":
-				return ec.fieldContext_Folder_folders(ctx, field)
-			case "parent":
-				return ec.fieldContext_Folder_parent(ctx, field)
-			case "notes":
-				return ec.fieldContext_Folder_notes(ctx, field)
+			case "edges":
+				return ec.fieldContext_FolderConnection_edges(ctx, field)
+			case "pageInfo":
+				return ec.fieldContext_FolderConnection_pageInfo(ctx, field)
+			case "totalCount":
+				return ec.fieldContext_FolderConnection_totalCount(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Folder", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type FolderConnection", field.Name)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Folder_folders_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -857,18 +1183,21 @@ func (ec *executionContext) _Folder_notes(ctx context.Context, field graphql.Col
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Notes(ctx)
+		return obj.Notes(ctx, fc.Args["after"].(*entgql.Cursor[int]), fc.Args["first"].(*int), fc.Args["before"].(*entgql.Cursor[int]), fc.Args["last"].(*int), fc.Args["orderBy"].([]*ent.NoteOrder))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.([]*ent.Note)
+	res := resTmp.(*ent.NoteConnection)
 	fc.Result = res
-	return ec.marshalONote2ᚕᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐNoteᚄ(ctx, field.Selections, res)
+	return ec.marshalNNoteConnection2ᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐNoteConnection(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Folder_notes(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -879,18 +1208,269 @@ func (ec *executionContext) fieldContext_Folder_notes(ctx context.Context, field
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "id":
-				return ec.fieldContext_Note_id(ctx, field)
-			case "title":
-				return ec.fieldContext_Note_title(ctx, field)
-			case "content":
-				return ec.fieldContext_Note_content(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_Note_createdAt(ctx, field)
-			case "parent":
-				return ec.fieldContext_Note_parent(ctx, field)
+			case "edges":
+				return ec.fieldContext_NoteConnection_edges(ctx, field)
+			case "pageInfo":
+				return ec.fieldContext_NoteConnection_pageInfo(ctx, field)
+			case "totalCount":
+				return ec.fieldContext_NoteConnection_totalCount(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Note", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type NoteConnection", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Folder_notes_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FolderConnection_edges(ctx context.Context, field graphql.CollectedField, obj *ent.FolderConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FolderConnection_edges(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Edges, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*ent.FolderEdge)
+	fc.Result = res
+	return ec.marshalOFolderEdge2ᚕᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐFolderEdge(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FolderConnection_edges(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FolderConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "node":
+				return ec.fieldContext_FolderEdge_node(ctx, field)
+			case "cursor":
+				return ec.fieldContext_FolderEdge_cursor(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FolderEdge", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FolderConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *ent.FolderConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FolderConnection_pageInfo(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PageInfo, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(entgql.PageInfo[int])
+	fc.Result = res
+	return ec.marshalNPageInfo2entgoᚗioᚋcontribᚋentgqlᚐPageInfo(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FolderConnection_pageInfo(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FolderConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "hasNextPage":
+				return ec.fieldContext_PageInfo_hasNextPage(ctx, field)
+			case "hasPreviousPage":
+				return ec.fieldContext_PageInfo_hasPreviousPage(ctx, field)
+			case "startCursor":
+				return ec.fieldContext_PageInfo_startCursor(ctx, field)
+			case "endCursor":
+				return ec.fieldContext_PageInfo_endCursor(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PageInfo", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FolderConnection_totalCount(ctx context.Context, field graphql.CollectedField, obj *ent.FolderConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FolderConnection_totalCount(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TotalCount, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FolderConnection_totalCount(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FolderConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FolderEdge_node(ctx context.Context, field graphql.CollectedField, obj *ent.FolderEdge) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FolderEdge_node(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Node, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*ent.Folder)
+	fc.Result = res
+	return ec.marshalOFolder2ᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐFolder(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FolderEdge_node(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FolderEdge",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Folder_id(ctx, field)
+			case "title":
+				return ec.fieldContext_Folder_title(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Folder_createdAt(ctx, field)
+			case "folders":
+				return ec.fieldContext_Folder_folders(ctx, field)
+			case "parent":
+				return ec.fieldContext_Folder_parent(ctx, field)
+			case "notes":
+				return ec.fieldContext_Folder_notes(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Folder", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FolderEdge_cursor(ctx context.Context, field graphql.CollectedField, obj *ent.FolderEdge) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FolderEdge_cursor(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Cursor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(entgql.Cursor[int])
+	fc.Result = res
+	return ec.marshalNCursor2entgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FolderEdge_cursor(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FolderEdge",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Cursor does not have child fields")
 		},
 	}
 	return fc, nil
@@ -1399,6 +1979,248 @@ func (ec *executionContext) fieldContext_Note_parent(ctx context.Context, field 
 	return fc, nil
 }
 
+func (ec *executionContext) _NoteConnection_edges(ctx context.Context, field graphql.CollectedField, obj *ent.NoteConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_NoteConnection_edges(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Edges, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*ent.NoteEdge)
+	fc.Result = res
+	return ec.marshalONoteEdge2ᚕᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐNoteEdge(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_NoteConnection_edges(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "NoteConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "node":
+				return ec.fieldContext_NoteEdge_node(ctx, field)
+			case "cursor":
+				return ec.fieldContext_NoteEdge_cursor(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type NoteEdge", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _NoteConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *ent.NoteConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_NoteConnection_pageInfo(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PageInfo, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(entgql.PageInfo[int])
+	fc.Result = res
+	return ec.marshalNPageInfo2entgoᚗioᚋcontribᚋentgqlᚐPageInfo(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_NoteConnection_pageInfo(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "NoteConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "hasNextPage":
+				return ec.fieldContext_PageInfo_hasNextPage(ctx, field)
+			case "hasPreviousPage":
+				return ec.fieldContext_PageInfo_hasPreviousPage(ctx, field)
+			case "startCursor":
+				return ec.fieldContext_PageInfo_startCursor(ctx, field)
+			case "endCursor":
+				return ec.fieldContext_PageInfo_endCursor(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PageInfo", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _NoteConnection_totalCount(ctx context.Context, field graphql.CollectedField, obj *ent.NoteConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_NoteConnection_totalCount(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TotalCount, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_NoteConnection_totalCount(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "NoteConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _NoteEdge_node(ctx context.Context, field graphql.CollectedField, obj *ent.NoteEdge) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_NoteEdge_node(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Node, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*ent.Note)
+	fc.Result = res
+	return ec.marshalONote2ᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐNote(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_NoteEdge_node(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "NoteEdge",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Note_id(ctx, field)
+			case "title":
+				return ec.fieldContext_Note_title(ctx, field)
+			case "content":
+				return ec.fieldContext_Note_content(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Note_createdAt(ctx, field)
+			case "parent":
+				return ec.fieldContext_Note_parent(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Note", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _NoteEdge_cursor(ctx context.Context, field graphql.CollectedField, obj *ent.NoteEdge) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_NoteEdge_cursor(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Cursor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(entgql.Cursor[int])
+	fc.Result = res
+	return ec.marshalNCursor2entgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_NoteEdge_cursor(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "NoteEdge",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Cursor does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _PageInfo_hasNextPage(ctx context.Context, field graphql.CollectedField, obj *entgql.PageInfo[int]) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_PageInfo_hasNextPage(ctx, field)
 	if err != nil {
@@ -1690,7 +2512,7 @@ func (ec *executionContext) _Query_folders(ctx context.Context, field graphql.Co
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Folders(rctx)
+		return ec.resolvers.Query().Folders(rctx, fc.Args["after"].(*entgql.Cursor[int]), fc.Args["first"].(*int), fc.Args["before"].(*entgql.Cursor[int]), fc.Args["last"].(*int), fc.Args["orderBy"].([]*ent.FolderOrder))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1702,9 +2524,9 @@ func (ec *executionContext) _Query_folders(ctx context.Context, field graphql.Co
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*ent.Folder)
+	res := resTmp.(*ent.FolderConnection)
 	fc.Result = res
-	return ec.marshalNFolder2ᚕᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐFolderᚄ(ctx, field.Selections, res)
+	return ec.marshalNFolderConnection2ᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐFolderConnection(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_folders(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1715,21 +2537,26 @@ func (ec *executionContext) fieldContext_Query_folders(ctx context.Context, fiel
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "id":
-				return ec.fieldContext_Folder_id(ctx, field)
-			case "title":
-				return ec.fieldContext_Folder_title(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_Folder_createdAt(ctx, field)
-			case "folders":
-				return ec.fieldContext_Folder_folders(ctx, field)
-			case "parent":
-				return ec.fieldContext_Folder_parent(ctx, field)
-			case "notes":
-				return ec.fieldContext_Folder_notes(ctx, field)
+			case "edges":
+				return ec.fieldContext_FolderConnection_edges(ctx, field)
+			case "pageInfo":
+				return ec.fieldContext_FolderConnection_pageInfo(ctx, field)
+			case "totalCount":
+				return ec.fieldContext_FolderConnection_totalCount(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Folder", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type FolderConnection", field.Name)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_folders_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -1748,7 +2575,7 @@ func (ec *executionContext) _Query_notes(ctx context.Context, field graphql.Coll
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Notes(rctx)
+		return ec.resolvers.Query().Notes(rctx, fc.Args["after"].(*entgql.Cursor[int]), fc.Args["first"].(*int), fc.Args["before"].(*entgql.Cursor[int]), fc.Args["last"].(*int), fc.Args["orderBy"].([]*ent.NoteOrder))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1760,9 +2587,9 @@ func (ec *executionContext) _Query_notes(ctx context.Context, field graphql.Coll
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*ent.Note)
+	res := resTmp.(*ent.NoteConnection)
 	fc.Result = res
-	return ec.marshalNNote2ᚕᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐNoteᚄ(ctx, field.Selections, res)
+	return ec.marshalNNoteConnection2ᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐNoteConnection(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_notes(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1773,19 +2600,26 @@ func (ec *executionContext) fieldContext_Query_notes(ctx context.Context, field 
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "id":
-				return ec.fieldContext_Note_id(ctx, field)
-			case "title":
-				return ec.fieldContext_Note_title(ctx, field)
-			case "content":
-				return ec.fieldContext_Note_content(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_Note_createdAt(ctx, field)
-			case "parent":
-				return ec.fieldContext_Note_parent(ctx, field)
+			case "edges":
+				return ec.fieldContext_NoteConnection_edges(ctx, field)
+			case "pageInfo":
+				return ec.fieldContext_NoteConnection_pageInfo(ctx, field)
+			case "totalCount":
+				return ec.fieldContext_NoteConnection_totalCount(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Note", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type NoteConnection", field.Name)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_notes_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -3795,6 +4629,82 @@ func (ec *executionContext) unmarshalInputCreateNoteInput(ctx context.Context, o
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputFolderOrder(ctx context.Context, obj interface{}) (ent.FolderOrder, error) {
+	var it ent.FolderOrder
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	if _, present := asMap["direction"]; !present {
+		asMap["direction"] = "ASC"
+	}
+
+	fieldsInOrder := [...]string{"direction", "field"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "direction":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("direction"))
+			data, err := ec.unmarshalNOrderDirection2entgoᚗioᚋcontribᚋentgqlᚐOrderDirection(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Direction = data
+		case "field":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("field"))
+			data, err := ec.unmarshalNFolderOrderField2ᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐFolderOrderField(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Field = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputNoteOrder(ctx context.Context, obj interface{}) (ent.NoteOrder, error) {
+	var it ent.NoteOrder
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	if _, present := asMap["direction"]; !present {
+		asMap["direction"] = "ASC"
+	}
+
+	fieldsInOrder := [...]string{"direction", "field"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "direction":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("direction"))
+			data, err := ec.unmarshalNOrderDirection2entgoᚗioᚋcontribᚋentgqlᚐOrderDirection(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Direction = data
+		case "field":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("field"))
+			data, err := ec.unmarshalNNoteOrderField2ᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐNoteOrderField(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Field = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputUpdateFolderInput(ctx context.Context, obj interface{}) (ent.UpdateFolderInput, error) {
 	var it ent.UpdateFolderInput
 	asMap := map[string]interface{}{}
@@ -3802,7 +4712,7 @@ func (ec *executionContext) unmarshalInputUpdateFolderInput(ctx context.Context,
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"title", "createdAt", "addFolderIDs", "removeFolderIDs", "clearFolders", "addParentIDs", "removeParentIDs", "clearParent", "addNoteIDs", "removeNoteIDs", "clearNotes"}
+	fieldsInOrder := [...]string{"title", "addFolderIDs", "removeFolderIDs", "clearFolders", "addParentIDs", "removeParentIDs", "clearParent", "addNoteIDs", "removeNoteIDs", "clearNotes"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -3816,13 +4726,6 @@ func (ec *executionContext) unmarshalInputUpdateFolderInput(ctx context.Context,
 				return it, err
 			}
 			it.Title = data
-		case "createdAt":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("createdAt"))
-			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.CreatedAt = data
 		case "addFolderIDs":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("addFolderIDs"))
 			data, err := ec.unmarshalOID2ᚕintᚄ(ctx, v)
@@ -3899,7 +4802,7 @@ func (ec *executionContext) unmarshalInputUpdateNoteInput(ctx context.Context, o
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"title", "content", "createdAt", "addParentIDs", "removeParentIDs", "clearParent"}
+	fieldsInOrder := [...]string{"title", "content", "addParentIDs", "removeParentIDs", "clearParent"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -3920,13 +4823,6 @@ func (ec *executionContext) unmarshalInputUpdateNoteInput(ctx context.Context, o
 				return it, err
 			}
 			it.Content = data
-		case "createdAt":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("createdAt"))
-			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.CreatedAt = data
 		case "addParentIDs":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("addParentIDs"))
 			data, err := ec.unmarshalOID2ᚕintᚄ(ctx, v)
@@ -4017,6 +4913,9 @@ func (ec *executionContext) _Folder(ctx context.Context, sel ast.SelectionSet, o
 					}
 				}()
 				res = ec._Folder_folders(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
 				return res
 			}
 
@@ -4083,6 +4982,9 @@ func (ec *executionContext) _Folder(ctx context.Context, sel ast.SelectionSet, o
 					}
 				}()
 				res = ec._Folder_notes(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
 				return res
 			}
 
@@ -4106,6 +5008,93 @@ func (ec *executionContext) _Folder(ctx context.Context, sel ast.SelectionSet, o
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var folderConnectionImplementors = []string{"FolderConnection"}
+
+func (ec *executionContext) _FolderConnection(ctx context.Context, sel ast.SelectionSet, obj *ent.FolderConnection) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, folderConnectionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("FolderConnection")
+		case "edges":
+			out.Values[i] = ec._FolderConnection_edges(ctx, field, obj)
+		case "pageInfo":
+			out.Values[i] = ec._FolderConnection_pageInfo(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "totalCount":
+			out.Values[i] = ec._FolderConnection_totalCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var folderEdgeImplementors = []string{"FolderEdge"}
+
+func (ec *executionContext) _FolderEdge(ctx context.Context, sel ast.SelectionSet, obj *ent.FolderEdge) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, folderEdgeImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("FolderEdge")
+		case "node":
+			out.Values[i] = ec._FolderEdge_node(ctx, field, obj)
+		case "cursor":
+			out.Values[i] = ec._FolderEdge_cursor(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4263,6 +5252,93 @@ func (ec *executionContext) _Note(ctx context.Context, sel ast.SelectionSet, obj
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var noteConnectionImplementors = []string{"NoteConnection"}
+
+func (ec *executionContext) _NoteConnection(ctx context.Context, sel ast.SelectionSet, obj *ent.NoteConnection) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, noteConnectionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("NoteConnection")
+		case "edges":
+			out.Values[i] = ec._NoteConnection_edges(ctx, field, obj)
+		case "pageInfo":
+			out.Values[i] = ec._NoteConnection_pageInfo(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "totalCount":
+			out.Values[i] = ec._NoteConnection_totalCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var noteEdgeImplementors = []string{"NoteEdge"}
+
+func (ec *executionContext) _NoteEdge(ctx context.Context, sel ast.SelectionSet, obj *ent.NoteEdge) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, noteEdgeImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("NoteEdge")
+		case "node":
+			out.Values[i] = ec._NoteEdge_node(ctx, field, obj)
+		case "cursor":
+			out.Values[i] = ec._NoteEdge_cursor(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4820,52 +5896,18 @@ func (ec *executionContext) unmarshalNCreateNoteInput2githubᚗcomᚋaltierawr�
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNFolder2githubᚗcomᚋaltierawrᚋnotebookᚋentᚐFolder(ctx context.Context, sel ast.SelectionSet, v ent.Folder) graphql.Marshaler {
-	return ec._Folder(ctx, sel, &v)
+func (ec *executionContext) unmarshalNCursor2entgoᚗioᚋcontribᚋentgqlᚐCursor(ctx context.Context, v interface{}) (entgql.Cursor[int], error) {
+	var res entgql.Cursor[int]
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNFolder2ᚕᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐFolderᚄ(ctx context.Context, sel ast.SelectionSet, v []*ent.Folder) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNFolder2ᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐFolder(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
+func (ec *executionContext) marshalNCursor2entgoᚗioᚋcontribᚋentgqlᚐCursor(ctx context.Context, sel ast.SelectionSet, v entgql.Cursor[int]) graphql.Marshaler {
+	return v
+}
 
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
+func (ec *executionContext) marshalNFolder2githubᚗcomᚋaltierawrᚋnotebookᚋentᚐFolder(ctx context.Context, sel ast.SelectionSet, v ent.Folder) graphql.Marshaler {
+	return ec._Folder(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNFolder2ᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐFolder(ctx context.Context, sel ast.SelectionSet, v *ent.Folder) graphql.Marshaler {
@@ -4876,6 +5918,41 @@ func (ec *executionContext) marshalNFolder2ᚖgithubᚗcomᚋaltierawrᚋnoteboo
 		return graphql.Null
 	}
 	return ec._Folder(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNFolderConnection2githubᚗcomᚋaltierawrᚋnotebookᚋentᚐFolderConnection(ctx context.Context, sel ast.SelectionSet, v ent.FolderConnection) graphql.Marshaler {
+	return ec._FolderConnection(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNFolderConnection2ᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐFolderConnection(ctx context.Context, sel ast.SelectionSet, v *ent.FolderConnection) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._FolderConnection(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNFolderOrder2ᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐFolderOrder(ctx context.Context, v interface{}) (*ent.FolderOrder, error) {
+	res, err := ec.unmarshalInputFolderOrder(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNFolderOrderField2ᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐFolderOrderField(ctx context.Context, v interface{}) (*ent.FolderOrderField, error) {
+	var res = new(ent.FolderOrderField)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNFolderOrderField2ᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐFolderOrderField(ctx context.Context, sel ast.SelectionSet, v *ent.FolderOrderField) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return v
 }
 
 func (ec *executionContext) unmarshalNID2int(ctx context.Context, v interface{}) (int, error) {
@@ -4925,6 +6002,21 @@ func (ec *executionContext) marshalNID2ᚕintᚄ(ctx context.Context, sel ast.Se
 	return ret
 }
 
+func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
+	res, err := graphql.UnmarshalInt(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
+	res := graphql.MarshalInt(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) marshalNNode2ᚕgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐNoder(ctx context.Context, sel ast.SelectionSet, v []ent.Noder) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -4967,50 +6059,6 @@ func (ec *executionContext) marshalNNote2githubᚗcomᚋaltierawrᚋnotebookᚋe
 	return ec._Note(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNNote2ᚕᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐNoteᚄ(ctx context.Context, sel ast.SelectionSet, v []*ent.Note) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNNote2ᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐNote(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
 func (ec *executionContext) marshalNNote2ᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐNote(ctx context.Context, sel ast.SelectionSet, v *ent.Note) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -5019,6 +6067,55 @@ func (ec *executionContext) marshalNNote2ᚖgithubᚗcomᚋaltierawrᚋnotebook�
 		return graphql.Null
 	}
 	return ec._Note(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNNoteConnection2githubᚗcomᚋaltierawrᚋnotebookᚋentᚐNoteConnection(ctx context.Context, sel ast.SelectionSet, v ent.NoteConnection) graphql.Marshaler {
+	return ec._NoteConnection(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNNoteConnection2ᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐNoteConnection(ctx context.Context, sel ast.SelectionSet, v *ent.NoteConnection) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._NoteConnection(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNNoteOrder2ᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐNoteOrder(ctx context.Context, v interface{}) (*ent.NoteOrder, error) {
+	res, err := ec.unmarshalInputNoteOrder(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNNoteOrderField2ᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐNoteOrderField(ctx context.Context, v interface{}) (*ent.NoteOrderField, error) {
+	var res = new(ent.NoteOrderField)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNNoteOrderField2ᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐNoteOrderField(ctx context.Context, sel ast.SelectionSet, v *ent.NoteOrderField) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return v
+}
+
+func (ec *executionContext) unmarshalNOrderDirection2entgoᚗioᚋcontribᚋentgqlᚐOrderDirection(ctx context.Context, v interface{}) (entgql.OrderDirection, error) {
+	var res entgql.OrderDirection
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNOrderDirection2entgoᚗioᚋcontribᚋentgqlᚐOrderDirection(ctx context.Context, sel ast.SelectionSet, v entgql.OrderDirection) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) marshalNPageInfo2entgoᚗioᚋcontribᚋentgqlᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v entgql.PageInfo[int]) graphql.Marshaler {
+	return ec._PageInfo(ctx, sel, &v)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
@@ -5403,6 +6500,81 @@ func (ec *executionContext) marshalOFolder2ᚕᚖgithubᚗcomᚋaltierawrᚋnote
 	return ret
 }
 
+func (ec *executionContext) marshalOFolder2ᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐFolder(ctx context.Context, sel ast.SelectionSet, v *ent.Folder) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Folder(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOFolderEdge2ᚕᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐFolderEdge(ctx context.Context, sel ast.SelectionSet, v []*ent.FolderEdge) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOFolderEdge2ᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐFolderEdge(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	return ret
+}
+
+func (ec *executionContext) marshalOFolderEdge2ᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐFolderEdge(ctx context.Context, sel ast.SelectionSet, v *ent.FolderEdge) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._FolderEdge(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOFolderOrder2ᚕᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐFolderOrderᚄ(ctx context.Context, v interface{}) ([]*ent.FolderOrder, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]*ent.FolderOrder, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNFolderOrder2ᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐFolderOrder(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
 func (ec *executionContext) unmarshalOID2ᚕintᚄ(ctx context.Context, v interface{}) ([]int, error) {
 	if v == nil {
 		return nil, nil
@@ -5441,6 +6613,22 @@ func (ec *executionContext) marshalOID2ᚕintᚄ(ctx context.Context, sel ast.Se
 	return ret
 }
 
+func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v interface{}) (*int, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalInt(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.SelectionSet, v *int) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	res := graphql.MarshalInt(*v)
+	return res
+}
+
 func (ec *executionContext) marshalONode2githubᚗcomᚋaltierawrᚋnotebookᚋentᚐNoder(ctx context.Context, sel ast.SelectionSet, v ent.Noder) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -5448,7 +6636,14 @@ func (ec *executionContext) marshalONode2githubᚗcomᚋaltierawrᚋnotebookᚋe
 	return ec._Node(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalONote2ᚕᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐNoteᚄ(ctx context.Context, sel ast.SelectionSet, v []*ent.Note) graphql.Marshaler {
+func (ec *executionContext) marshalONote2ᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐNote(ctx context.Context, sel ast.SelectionSet, v *ent.Note) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Note(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalONoteEdge2ᚕᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐNoteEdge(ctx context.Context, sel ast.SelectionSet, v []*ent.NoteEdge) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -5475,7 +6670,7 @@ func (ec *executionContext) marshalONote2ᚕᚖgithubᚗcomᚋaltierawrᚋnotebo
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNNote2ᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐNote(ctx, sel, v[i])
+			ret[i] = ec.marshalONoteEdge2ᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐNoteEdge(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -5486,13 +6681,34 @@ func (ec *executionContext) marshalONote2ᚕᚖgithubᚗcomᚋaltierawrᚋnotebo
 	}
 	wg.Wait()
 
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
+	return ret
+}
+
+func (ec *executionContext) marshalONoteEdge2ᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐNoteEdge(ctx context.Context, sel ast.SelectionSet, v *ent.NoteEdge) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._NoteEdge(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalONoteOrder2ᚕᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐNoteOrderᚄ(ctx context.Context, v interface{}) ([]*ent.NoteOrder, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]*ent.NoteOrder, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNNoteOrder2ᚖgithubᚗcomᚋaltierawrᚋnotebookᚋentᚐNoteOrder(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
 		}
 	}
-
-	return ret
+	return res, nil
 }
 
 func (ec *executionContext) unmarshalOString2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {

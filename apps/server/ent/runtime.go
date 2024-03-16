@@ -16,12 +16,20 @@ import (
 func init() {
 	folderFields := schema.Folder{}.Fields()
 	_ = folderFields
+	// folderDescTitle is the schema descriptor for title field.
+	folderDescTitle := folderFields[0].Descriptor()
+	// folder.TitleValidator is a validator for the "title" field. It is called by the builders before save.
+	folder.TitleValidator = folderDescTitle.Validators[0].(func(string) error)
 	// folderDescCreatedAt is the schema descriptor for created_at field.
 	folderDescCreatedAt := folderFields[1].Descriptor()
 	// folder.DefaultCreatedAt holds the default value on creation for the created_at field.
 	folder.DefaultCreatedAt = folderDescCreatedAt.Default.(func() time.Time)
 	noteFields := schema.Note{}.Fields()
 	_ = noteFields
+	// noteDescTitle is the schema descriptor for title field.
+	noteDescTitle := noteFields[0].Descriptor()
+	// note.TitleValidator is a validator for the "title" field. It is called by the builders before save.
+	note.TitleValidator = noteDescTitle.Validators[0].(func(string) error)
 	// noteDescContent is the schema descriptor for content field.
 	noteDescContent := noteFields[1].Descriptor()
 	// note.DefaultContent holds the default value on creation for the content field.
