@@ -4,12 +4,14 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/altierawr/notebook/ent/folder"
 	"github.com/altierawr/notebook/ent/note"
 	"github.com/altierawr/notebook/ent/predicate"
 )
@@ -17,12 +19,14 @@ import (
 // NoteQuery is the builder for querying Note entities.
 type NoteQuery struct {
 	config
-	ctx        *QueryContext
-	order      []note.OrderOption
-	inters     []Interceptor
-	predicates []predicate.Note
-	modifiers  []func(*sql.Selector)
-	loadTotal  []func(context.Context, []*Note) error
+	ctx             *QueryContext
+	order           []note.OrderOption
+	inters          []Interceptor
+	predicates      []predicate.Note
+	withParent      *FolderQuery
+	modifiers       []func(*sql.Selector)
+	loadTotal       []func(context.Context, []*Note) error
+	withNamedParent map[string]*FolderQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -57,6 +61,28 @@ func (nq *NoteQuery) Unique(unique bool) *NoteQuery {
 func (nq *NoteQuery) Order(o ...note.OrderOption) *NoteQuery {
 	nq.order = append(nq.order, o...)
 	return nq
+}
+
+// QueryParent chains the current query on the "parent" edge.
+func (nq *NoteQuery) QueryParent() *FolderQuery {
+	query := (&FolderClient{config: nq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := nq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := nq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(note.Table, note.FieldID, selector),
+			sqlgraph.To(folder.Table, folder.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, note.ParentTable, note.ParentPrimaryKey...),
+		)
+		fromU = sqlgraph.SetNeighbors(nq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first Note entity from the query.
@@ -251,10 +277,22 @@ func (nq *NoteQuery) Clone() *NoteQuery {
 		order:      append([]note.OrderOption{}, nq.order...),
 		inters:     append([]Interceptor{}, nq.inters...),
 		predicates: append([]predicate.Note{}, nq.predicates...),
+		withParent: nq.withParent.Clone(),
 		// clone intermediate query.
 		sql:  nq.sql.Clone(),
 		path: nq.path,
 	}
+}
+
+// WithParent tells the query-builder to eager-load the nodes that are connected to
+// the "parent" edge. The optional arguments are used to configure the query builder of the edge.
+func (nq *NoteQuery) WithParent(opts ...func(*FolderQuery)) *NoteQuery {
+	query := (&FolderClient{config: nq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	nq.withParent = query
+	return nq
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -333,8 +371,11 @@ func (nq *NoteQuery) prepareQuery(ctx context.Context) error {
 
 func (nq *NoteQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Note, error) {
 	var (
-		nodes = []*Note{}
-		_spec = nq.querySpec()
+		nodes       = []*Note{}
+		_spec       = nq.querySpec()
+		loadedTypes = [1]bool{
+			nq.withParent != nil,
+		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Note).scanValues(nil, columns)
@@ -342,6 +383,7 @@ func (nq *NoteQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Note, e
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &Note{config: nq.config}
 		nodes = append(nodes, node)
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	if len(nq.modifiers) > 0 {
@@ -356,12 +398,88 @@ func (nq *NoteQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Note, e
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := nq.withParent; query != nil {
+		if err := nq.loadParent(ctx, query, nodes,
+			func(n *Note) { n.Edges.Parent = []*Folder{} },
+			func(n *Note, e *Folder) { n.Edges.Parent = append(n.Edges.Parent, e) }); err != nil {
+			return nil, err
+		}
+	}
+	for name, query := range nq.withNamedParent {
+		if err := nq.loadParent(ctx, query, nodes,
+			func(n *Note) { n.appendNamedParent(name) },
+			func(n *Note, e *Folder) { n.appendNamedParent(name, e) }); err != nil {
+			return nil, err
+		}
+	}
 	for i := range nq.loadTotal {
 		if err := nq.loadTotal[i](ctx, nodes); err != nil {
 			return nil, err
 		}
 	}
 	return nodes, nil
+}
+
+func (nq *NoteQuery) loadParent(ctx context.Context, query *FolderQuery, nodes []*Note, init func(*Note), assign func(*Note, *Folder)) error {
+	edgeIDs := make([]driver.Value, len(nodes))
+	byID := make(map[int]*Note)
+	nids := make(map[int]map[*Note]struct{})
+	for i, node := range nodes {
+		edgeIDs[i] = node.ID
+		byID[node.ID] = node
+		if init != nil {
+			init(node)
+		}
+	}
+	query.Where(func(s *sql.Selector) {
+		joinT := sql.Table(note.ParentTable)
+		s.Join(joinT).On(s.C(folder.FieldID), joinT.C(note.ParentPrimaryKey[0]))
+		s.Where(sql.InValues(joinT.C(note.ParentPrimaryKey[1]), edgeIDs...))
+		columns := s.SelectedColumns()
+		s.Select(joinT.C(note.ParentPrimaryKey[1]))
+		s.AppendSelect(columns...)
+		s.SetDistinct(false)
+	})
+	if err := query.prepareQuery(ctx); err != nil {
+		return err
+	}
+	qr := QuerierFunc(func(ctx context.Context, q Query) (Value, error) {
+		return query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
+			assign := spec.Assign
+			values := spec.ScanValues
+			spec.ScanValues = func(columns []string) ([]any, error) {
+				values, err := values(columns[1:])
+				if err != nil {
+					return nil, err
+				}
+				return append([]any{new(sql.NullInt64)}, values...), nil
+			}
+			spec.Assign = func(columns []string, values []any) error {
+				outValue := int(values[0].(*sql.NullInt64).Int64)
+				inValue := int(values[1].(*sql.NullInt64).Int64)
+				if nids[inValue] == nil {
+					nids[inValue] = map[*Note]struct{}{byID[outValue]: {}}
+					return assign(columns[1:], values[1:])
+				}
+				nids[inValue][byID[outValue]] = struct{}{}
+				return nil
+			}
+		})
+	})
+	neighbors, err := withInterceptors[[]*Folder](ctx, query, qr, query.inters)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected "parent" node returned %v`, n.ID)
+		}
+		for kn := range nodes {
+			assign(kn, n)
+		}
+	}
+	return nil
 }
 
 func (nq *NoteQuery) sqlCount(ctx context.Context) (int, error) {
@@ -446,6 +564,20 @@ func (nq *NoteQuery) sqlQuery(ctx context.Context) *sql.Selector {
 		selector.Limit(*limit)
 	}
 	return selector
+}
+
+// WithNamedParent tells the query-builder to eager-load the nodes that are connected to the "parent"
+// edge with the given name. The optional arguments are used to configure the query builder of the edge.
+func (nq *NoteQuery) WithNamedParent(name string, opts ...func(*FolderQuery)) *NoteQuery {
+	query := (&FolderClient{config: nq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	if nq.withNamedParent == nil {
+		nq.withNamedParent = make(map[string]*FolderQuery)
+	}
+	nq.withNamedParent[name] = query
+	return nq
 }
 
 // NoteGroupBy is the group-by builder for Note entities.

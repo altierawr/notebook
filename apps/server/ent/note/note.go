@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 const (
@@ -19,8 +20,15 @@ const (
 	FieldContent = "content"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
+	// EdgeParent holds the string denoting the parent edge name in mutations.
+	EdgeParent = "parent"
 	// Table holds the table name of the note in the database.
 	Table = "notes"
+	// ParentTable is the table that holds the parent relation/edge. The primary key declared below.
+	ParentTable = "folder_notes"
+	// ParentInverseTable is the table name for the Folder entity.
+	// It exists in this package in order to avoid circular dependency with the "folder" package.
+	ParentInverseTable = "folders"
 )
 
 // Columns holds all SQL columns for note fields.
@@ -30,6 +38,12 @@ var Columns = []string{
 	FieldContent,
 	FieldCreatedAt,
 }
+
+var (
+	// ParentPrimaryKey and ParentColumn2 are the table columns denoting the
+	// primary key for the parent relation (M2M).
+	ParentPrimaryKey = []string{"folder_id", "note_id"}
+)
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
@@ -42,6 +56,8 @@ func ValidColumn(column string) bool {
 }
 
 var (
+	// DefaultContent holds the default value on creation for the "content" field.
+	DefaultContent string
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 )
@@ -67,4 +83,25 @@ func ByContent(opts ...sql.OrderTermOption) OrderOption {
 // ByCreatedAt orders the results by the created_at field.
 func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCreatedAt, opts...).ToFunc()
+}
+
+// ByParentCount orders the results by parent count.
+func ByParentCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newParentStep(), opts...)
+	}
+}
+
+// ByParent orders the results by parent terms.
+func ByParent(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newParentStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+func newParentStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ParentInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2M, true, ParentTable, ParentPrimaryKey...),
+	)
 }

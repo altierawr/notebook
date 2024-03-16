@@ -9,6 +9,18 @@ import (
 	"github.com/altierawr/notebook/ent"
 )
 
+// The FolderFunc type is an adapter to allow the use of ordinary
+// function as Folder mutator.
+type FolderFunc func(context.Context, *ent.FolderMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f FolderFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.FolderMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.FolderMutation", m)
+}
+
 // The NoteFunc type is an adapter to allow the use of ordinary
 // function as Note mutator.
 type NoteFunc func(context.Context, *ent.NoteMutation) (ent.Value, error)

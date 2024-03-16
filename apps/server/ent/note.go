@@ -22,8 +22,33 @@ type Note struct {
 	// Content holds the value of the "content" field.
 	Content string `json:"content,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
-	CreatedAt    time.Time `json:"created_at,omitempty"`
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the NoteQuery when eager-loading is set.
+	Edges        NoteEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// NoteEdges holds the relations/edges for other nodes in the graph.
+type NoteEdges struct {
+	// Parent holds the value of the parent edge.
+	Parent []*Folder `json:"parent,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+	// totalCount holds the count of the edges above.
+	totalCount [1]map[string]int
+
+	namedParent map[string][]*Folder
+}
+
+// ParentOrErr returns the Parent value or an error if the edge
+// was not loaded in eager-loading.
+func (e NoteEdges) ParentOrErr() ([]*Folder, error) {
+	if e.loadedTypes[0] {
+		return e.Parent, nil
+	}
+	return nil, &NotLoadedError{edge: "parent"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -89,6 +114,11 @@ func (n *Note) Value(name string) (ent.Value, error) {
 	return n.selectValues.Get(name)
 }
 
+// QueryParent queries the "parent" edge of the Note entity.
+func (n *Note) QueryParent() *FolderQuery {
+	return NewNoteClient(n.config).QueryParent(n)
+}
+
 // Update returns a builder for updating this Note.
 // Note that you need to call Note.Unwrap() before calling this method if this Note
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -122,6 +152,30 @@ func (n *Note) String() string {
 	builder.WriteString(n.CreatedAt.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
+}
+
+// NamedParent returns the Parent named value or an error if the edge was not
+// loaded in eager-loading with this name.
+func (n *Note) NamedParent(name string) ([]*Folder, error) {
+	if n.Edges.namedParent == nil {
+		return nil, &NotLoadedError{edge: name}
+	}
+	nodes, ok := n.Edges.namedParent[name]
+	if !ok {
+		return nil, &NotLoadedError{edge: name}
+	}
+	return nodes, nil
+}
+
+func (n *Note) appendNamedParent(name string, edges ...*Folder) {
+	if n.Edges.namedParent == nil {
+		n.Edges.namedParent = make(map[string][]*Folder)
+	}
+	if len(edges) == 0 {
+		n.Edges.namedParent[name] = []*Folder{}
+	} else {
+		n.Edges.namedParent[name] = append(n.Edges.namedParent[name], edges...)
+	}
 }
 
 // Notes is a parsable slice of Note.

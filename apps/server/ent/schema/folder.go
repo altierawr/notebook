@@ -10,31 +10,31 @@ import (
 	"entgo.io/ent/schema/field"
 )
 
-// Note holds the schema definition for the Note entity.
-type Note struct {
+// Folder holds the schema definition for the Folder entity.
+type Folder struct {
 	ent.Schema
 }
 
-// Fields of the Note.
-func (Note) Fields() []ent.Field {
+// Fields of the Folder.
+func (Folder) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("title"),
-		field.Text("content").
-			Default(""),
 		field.Time("created_at").
 			Default(time.Now),
 	}
 }
 
-// Edges of the Note.
-func (Note) Edges() []ent.Edge {
+// Edges of the Folder.
+func (Folder) Edges() []ent.Edge {
 	return []ent.Edge{
+		edge.To("folders", Folder.Type),
 		edge.From("parent", Folder.Type).
-			Ref("notes"),
+			Ref("folders"),
+		edge.To("notes", Note.Type),
 	}
 }
 
-func (Note) Annotations() []schema.Annotation {
+func (Folder) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entgql.QueryField(),
 		entgql.Mutations(entgql.MutationCreate(), entgql.MutationUpdate()),

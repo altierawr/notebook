@@ -11,6 +11,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/altierawr/notebook/ent/folder"
 	"github.com/altierawr/notebook/ent/note"
 	"github.com/altierawr/notebook/ent/predicate"
 )
@@ -24,8 +25,648 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
-	TypeNote = "Note"
+	TypeFolder = "Folder"
+	TypeNote   = "Note"
 )
+
+// FolderMutation represents an operation that mutates the Folder nodes in the graph.
+type FolderMutation struct {
+	config
+	op             Op
+	typ            string
+	id             *int
+	title          *string
+	created_at     *time.Time
+	clearedFields  map[string]struct{}
+	folders        map[int]struct{}
+	removedfolders map[int]struct{}
+	clearedfolders bool
+	parent         map[int]struct{}
+	removedparent  map[int]struct{}
+	clearedparent  bool
+	notes          map[int]struct{}
+	removednotes   map[int]struct{}
+	clearednotes   bool
+	done           bool
+	oldValue       func(context.Context) (*Folder, error)
+	predicates     []predicate.Folder
+}
+
+var _ ent.Mutation = (*FolderMutation)(nil)
+
+// folderOption allows management of the mutation configuration using functional options.
+type folderOption func(*FolderMutation)
+
+// newFolderMutation creates new mutation for the Folder entity.
+func newFolderMutation(c config, op Op, opts ...folderOption) *FolderMutation {
+	m := &FolderMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeFolder,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withFolderID sets the ID field of the mutation.
+func withFolderID(id int) folderOption {
+	return func(m *FolderMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Folder
+		)
+		m.oldValue = func(ctx context.Context) (*Folder, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Folder.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withFolder sets the old Folder of the mutation.
+func withFolder(node *Folder) folderOption {
+	return func(m *FolderMutation) {
+		m.oldValue = func(context.Context) (*Folder, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m FolderMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m FolderMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *FolderMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *FolderMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Folder.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetTitle sets the "title" field.
+func (m *FolderMutation) SetTitle(s string) {
+	m.title = &s
+}
+
+// Title returns the value of the "title" field in the mutation.
+func (m *FolderMutation) Title() (r string, exists bool) {
+	v := m.title
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTitle returns the old "title" field's value of the Folder entity.
+// If the Folder object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FolderMutation) OldTitle(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTitle is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTitle requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTitle: %w", err)
+	}
+	return oldValue.Title, nil
+}
+
+// ResetTitle resets all changes to the "title" field.
+func (m *FolderMutation) ResetTitle() {
+	m.title = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *FolderMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *FolderMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the Folder entity.
+// If the Folder object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FolderMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *FolderMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// AddFolderIDs adds the "folders" edge to the Folder entity by ids.
+func (m *FolderMutation) AddFolderIDs(ids ...int) {
+	if m.folders == nil {
+		m.folders = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.folders[ids[i]] = struct{}{}
+	}
+}
+
+// ClearFolders clears the "folders" edge to the Folder entity.
+func (m *FolderMutation) ClearFolders() {
+	m.clearedfolders = true
+}
+
+// FoldersCleared reports if the "folders" edge to the Folder entity was cleared.
+func (m *FolderMutation) FoldersCleared() bool {
+	return m.clearedfolders
+}
+
+// RemoveFolderIDs removes the "folders" edge to the Folder entity by IDs.
+func (m *FolderMutation) RemoveFolderIDs(ids ...int) {
+	if m.removedfolders == nil {
+		m.removedfolders = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.folders, ids[i])
+		m.removedfolders[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedFolders returns the removed IDs of the "folders" edge to the Folder entity.
+func (m *FolderMutation) RemovedFoldersIDs() (ids []int) {
+	for id := range m.removedfolders {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// FoldersIDs returns the "folders" edge IDs in the mutation.
+func (m *FolderMutation) FoldersIDs() (ids []int) {
+	for id := range m.folders {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetFolders resets all changes to the "folders" edge.
+func (m *FolderMutation) ResetFolders() {
+	m.folders = nil
+	m.clearedfolders = false
+	m.removedfolders = nil
+}
+
+// AddParentIDs adds the "parent" edge to the Folder entity by ids.
+func (m *FolderMutation) AddParentIDs(ids ...int) {
+	if m.parent == nil {
+		m.parent = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.parent[ids[i]] = struct{}{}
+	}
+}
+
+// ClearParent clears the "parent" edge to the Folder entity.
+func (m *FolderMutation) ClearParent() {
+	m.clearedparent = true
+}
+
+// ParentCleared reports if the "parent" edge to the Folder entity was cleared.
+func (m *FolderMutation) ParentCleared() bool {
+	return m.clearedparent
+}
+
+// RemoveParentIDs removes the "parent" edge to the Folder entity by IDs.
+func (m *FolderMutation) RemoveParentIDs(ids ...int) {
+	if m.removedparent == nil {
+		m.removedparent = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.parent, ids[i])
+		m.removedparent[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedParent returns the removed IDs of the "parent" edge to the Folder entity.
+func (m *FolderMutation) RemovedParentIDs() (ids []int) {
+	for id := range m.removedparent {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ParentIDs returns the "parent" edge IDs in the mutation.
+func (m *FolderMutation) ParentIDs() (ids []int) {
+	for id := range m.parent {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetParent resets all changes to the "parent" edge.
+func (m *FolderMutation) ResetParent() {
+	m.parent = nil
+	m.clearedparent = false
+	m.removedparent = nil
+}
+
+// AddNoteIDs adds the "notes" edge to the Note entity by ids.
+func (m *FolderMutation) AddNoteIDs(ids ...int) {
+	if m.notes == nil {
+		m.notes = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.notes[ids[i]] = struct{}{}
+	}
+}
+
+// ClearNotes clears the "notes" edge to the Note entity.
+func (m *FolderMutation) ClearNotes() {
+	m.clearednotes = true
+}
+
+// NotesCleared reports if the "notes" edge to the Note entity was cleared.
+func (m *FolderMutation) NotesCleared() bool {
+	return m.clearednotes
+}
+
+// RemoveNoteIDs removes the "notes" edge to the Note entity by IDs.
+func (m *FolderMutation) RemoveNoteIDs(ids ...int) {
+	if m.removednotes == nil {
+		m.removednotes = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.notes, ids[i])
+		m.removednotes[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedNotes returns the removed IDs of the "notes" edge to the Note entity.
+func (m *FolderMutation) RemovedNotesIDs() (ids []int) {
+	for id := range m.removednotes {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// NotesIDs returns the "notes" edge IDs in the mutation.
+func (m *FolderMutation) NotesIDs() (ids []int) {
+	for id := range m.notes {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetNotes resets all changes to the "notes" edge.
+func (m *FolderMutation) ResetNotes() {
+	m.notes = nil
+	m.clearednotes = false
+	m.removednotes = nil
+}
+
+// Where appends a list predicates to the FolderMutation builder.
+func (m *FolderMutation) Where(ps ...predicate.Folder) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the FolderMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *FolderMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Folder, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *FolderMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *FolderMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Folder).
+func (m *FolderMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *FolderMutation) Fields() []string {
+	fields := make([]string, 0, 2)
+	if m.title != nil {
+		fields = append(fields, folder.FieldTitle)
+	}
+	if m.created_at != nil {
+		fields = append(fields, folder.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *FolderMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case folder.FieldTitle:
+		return m.Title()
+	case folder.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *FolderMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case folder.FieldTitle:
+		return m.OldTitle(ctx)
+	case folder.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown Folder field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *FolderMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case folder.FieldTitle:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTitle(v)
+		return nil
+	case folder.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Folder field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *FolderMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *FolderMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *FolderMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Folder numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *FolderMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *FolderMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *FolderMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown Folder nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *FolderMutation) ResetField(name string) error {
+	switch name {
+	case folder.FieldTitle:
+		m.ResetTitle()
+		return nil
+	case folder.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown Folder field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *FolderMutation) AddedEdges() []string {
+	edges := make([]string, 0, 3)
+	if m.folders != nil {
+		edges = append(edges, folder.EdgeFolders)
+	}
+	if m.parent != nil {
+		edges = append(edges, folder.EdgeParent)
+	}
+	if m.notes != nil {
+		edges = append(edges, folder.EdgeNotes)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *FolderMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case folder.EdgeFolders:
+		ids := make([]ent.Value, 0, len(m.folders))
+		for id := range m.folders {
+			ids = append(ids, id)
+		}
+		return ids
+	case folder.EdgeParent:
+		ids := make([]ent.Value, 0, len(m.parent))
+		for id := range m.parent {
+			ids = append(ids, id)
+		}
+		return ids
+	case folder.EdgeNotes:
+		ids := make([]ent.Value, 0, len(m.notes))
+		for id := range m.notes {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *FolderMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 3)
+	if m.removedfolders != nil {
+		edges = append(edges, folder.EdgeFolders)
+	}
+	if m.removedparent != nil {
+		edges = append(edges, folder.EdgeParent)
+	}
+	if m.removednotes != nil {
+		edges = append(edges, folder.EdgeNotes)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *FolderMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case folder.EdgeFolders:
+		ids := make([]ent.Value, 0, len(m.removedfolders))
+		for id := range m.removedfolders {
+			ids = append(ids, id)
+		}
+		return ids
+	case folder.EdgeParent:
+		ids := make([]ent.Value, 0, len(m.removedparent))
+		for id := range m.removedparent {
+			ids = append(ids, id)
+		}
+		return ids
+	case folder.EdgeNotes:
+		ids := make([]ent.Value, 0, len(m.removednotes))
+		for id := range m.removednotes {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *FolderMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 3)
+	if m.clearedfolders {
+		edges = append(edges, folder.EdgeFolders)
+	}
+	if m.clearedparent {
+		edges = append(edges, folder.EdgeParent)
+	}
+	if m.clearednotes {
+		edges = append(edges, folder.EdgeNotes)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *FolderMutation) EdgeCleared(name string) bool {
+	switch name {
+	case folder.EdgeFolders:
+		return m.clearedfolders
+	case folder.EdgeParent:
+		return m.clearedparent
+	case folder.EdgeNotes:
+		return m.clearednotes
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *FolderMutation) ClearEdge(name string) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Folder unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *FolderMutation) ResetEdge(name string) error {
+	switch name {
+	case folder.EdgeFolders:
+		m.ResetFolders()
+		return nil
+	case folder.EdgeParent:
+		m.ResetParent()
+		return nil
+	case folder.EdgeNotes:
+		m.ResetNotes()
+		return nil
+	}
+	return fmt.Errorf("unknown Folder edge %s", name)
+}
 
 // NoteMutation represents an operation that mutates the Note nodes in the graph.
 type NoteMutation struct {
@@ -37,6 +678,9 @@ type NoteMutation struct {
 	content       *string
 	created_at    *time.Time
 	clearedFields map[string]struct{}
+	parent        map[int]struct{}
+	removedparent map[int]struct{}
+	clearedparent bool
 	done          bool
 	oldValue      func(context.Context) (*Note, error)
 	predicates    []predicate.Note
@@ -248,6 +892,60 @@ func (m *NoteMutation) ResetCreatedAt() {
 	m.created_at = nil
 }
 
+// AddParentIDs adds the "parent" edge to the Folder entity by ids.
+func (m *NoteMutation) AddParentIDs(ids ...int) {
+	if m.parent == nil {
+		m.parent = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.parent[ids[i]] = struct{}{}
+	}
+}
+
+// ClearParent clears the "parent" edge to the Folder entity.
+func (m *NoteMutation) ClearParent() {
+	m.clearedparent = true
+}
+
+// ParentCleared reports if the "parent" edge to the Folder entity was cleared.
+func (m *NoteMutation) ParentCleared() bool {
+	return m.clearedparent
+}
+
+// RemoveParentIDs removes the "parent" edge to the Folder entity by IDs.
+func (m *NoteMutation) RemoveParentIDs(ids ...int) {
+	if m.removedparent == nil {
+		m.removedparent = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.parent, ids[i])
+		m.removedparent[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedParent returns the removed IDs of the "parent" edge to the Folder entity.
+func (m *NoteMutation) RemovedParentIDs() (ids []int) {
+	for id := range m.removedparent {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ParentIDs returns the "parent" edge IDs in the mutation.
+func (m *NoteMutation) ParentIDs() (ids []int) {
+	for id := range m.parent {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetParent resets all changes to the "parent" edge.
+func (m *NoteMutation) ResetParent() {
+	m.parent = nil
+	m.clearedparent = false
+	m.removedparent = nil
+}
+
 // Where appends a list predicates to the NoteMutation builder.
 func (m *NoteMutation) Where(ps ...predicate.Note) {
 	m.predicates = append(m.predicates, ps...)
@@ -415,48 +1113,84 @@ func (m *NoteMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *NoteMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.parent != nil {
+		edges = append(edges, note.EdgeParent)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *NoteMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case note.EdgeParent:
+		ids := make([]ent.Value, 0, len(m.parent))
+		for id := range m.parent {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *NoteMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.removedparent != nil {
+		edges = append(edges, note.EdgeParent)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *NoteMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case note.EdgeParent:
+		ids := make([]ent.Value, 0, len(m.removedparent))
+		for id := range m.removedparent {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *NoteMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.clearedparent {
+		edges = append(edges, note.EdgeParent)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *NoteMutation) EdgeCleared(name string) bool {
+	switch name {
+	case note.EdgeParent:
+		return m.clearedparent
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *NoteMutation) ClearEdge(name string) error {
+	switch name {
+	}
 	return fmt.Errorf("unknown Note unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *NoteMutation) ResetEdge(name string) error {
+	switch name {
+	case note.EdgeParent:
+		m.ResetParent()
+		return nil
+	}
 	return fmt.Errorf("unknown Note edge %s", name)
 }

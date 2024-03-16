@@ -20,6 +20,11 @@ func (r *queryResolver) Nodes(ctx context.Context, ids []int) ([]ent.Noder, erro
 	return r.client.Noders(ctx, ids)
 }
 
+// Folders is the resolver for the folders field.
+func (r *queryResolver) Folders(ctx context.Context) ([]*ent.Folder, error) {
+	return r.client.Folder.Query().All(ctx)
+}
+
 // Notes is the resolver for the notes field.
 func (r *queryResolver) Notes(ctx context.Context) ([]*ent.Note, error) {
 	return r.client.Note.Query().All(ctx)

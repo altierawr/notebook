@@ -1,4 +1,6 @@
 type Mutation {
   createNote(input: CreateNoteInput!): Note!
   updateNote(id: ID!, input: UpdateNoteInput!): Note!
+  createFolder(input: CreateFolderInput!): Folder!
+  updateFolder(id: ID!, input: UpdateFolderInput!): Folder!
 }

@@ -6,19 +6,121 @@ import (
 	"time"
 )
 
+// CreateFolderInput represents a mutation input for creating folders.
+type CreateFolderInput struct {
+	Title     string
+	CreatedAt *time.Time
+	FolderIDs []int
+	ParentIDs []int
+	NoteIDs   []int
+}
+
+// Mutate applies the CreateFolderInput on the FolderMutation builder.
+func (i *CreateFolderInput) Mutate(m *FolderMutation) {
+	m.SetTitle(i.Title)
+	if v := i.CreatedAt; v != nil {
+		m.SetCreatedAt(*v)
+	}
+	if v := i.FolderIDs; len(v) > 0 {
+		m.AddFolderIDs(v...)
+	}
+	if v := i.ParentIDs; len(v) > 0 {
+		m.AddParentIDs(v...)
+	}
+	if v := i.NoteIDs; len(v) > 0 {
+		m.AddNoteIDs(v...)
+	}
+}
+
+// SetInput applies the change-set in the CreateFolderInput on the FolderCreate builder.
+func (c *FolderCreate) SetInput(i CreateFolderInput) *FolderCreate {
+	i.Mutate(c.Mutation())
+	return c
+}
+
+// UpdateFolderInput represents a mutation input for updating folders.
+type UpdateFolderInput struct {
+	Title           *string
+	CreatedAt       *time.Time
+	ClearFolders    bool
+	AddFolderIDs    []int
+	RemoveFolderIDs []int
+	ClearParent     bool
+	AddParentIDs    []int
+	RemoveParentIDs []int
+	ClearNotes      bool
+	AddNoteIDs      []int
+	RemoveNoteIDs   []int
+}
+
+// Mutate applies the UpdateFolderInput on the FolderMutation builder.
+func (i *UpdateFolderInput) Mutate(m *FolderMutation) {
+	if v := i.Title; v != nil {
+		m.SetTitle(*v)
+	}
+	if v := i.CreatedAt; v != nil {
+		m.SetCreatedAt(*v)
+	}
+	if i.ClearFolders {
+		m.ClearFolders()
+	}
+	if v := i.AddFolderIDs; len(v) > 0 {
+		m.AddFolderIDs(v...)
+	}
+	if v := i.RemoveFolderIDs; len(v) > 0 {
+		m.RemoveFolderIDs(v...)
+	}
+	if i.ClearParent {
+		m.ClearParent()
+	}
+	if v := i.AddParentIDs; len(v) > 0 {
+		m.AddParentIDs(v...)
+	}
+	if v := i.RemoveParentIDs; len(v) > 0 {
+		m.RemoveParentIDs(v...)
+	}
+	if i.ClearNotes {
+		m.ClearNotes()
+	}
+	if v := i.AddNoteIDs; len(v) > 0 {
+		m.AddNoteIDs(v...)
+	}
+	if v := i.RemoveNoteIDs; len(v) > 0 {
+		m.RemoveNoteIDs(v...)
+	}
+}
+
+// SetInput applies the change-set in the UpdateFolderInput on the FolderUpdate builder.
+func (c *FolderUpdate) SetInput(i UpdateFolderInput) *FolderUpdate {
+	i.Mutate(c.Mutation())
+	return c
+}
+
+// SetInput applies the change-set in the UpdateFolderInput on the FolderUpdateOne builder.
+func (c *FolderUpdateOne) SetInput(i UpdateFolderInput) *FolderUpdateOne {
+	i.Mutate(c.Mutation())
+	return c
+}
+
 // CreateNoteInput represents a mutation input for creating notes.
 type CreateNoteInput struct {
 	Title     string
-	Content   string
+	Content   *string
 	CreatedAt *time.Time
+	ParentIDs []int
 }
 
 // Mutate applies the CreateNoteInput on the NoteMutation builder.
 func (i *CreateNoteInput) Mutate(m *NoteMutation) {
 	m.SetTitle(i.Title)
-	m.SetContent(i.Content)
+	if v := i.Content; v != nil {
+		m.SetContent(*v)
+	}
 	if v := i.CreatedAt; v != nil {
 		m.SetCreatedAt(*v)
+	}
+	if v := i.ParentIDs; len(v) > 0 {
+		m.AddParentIDs(v...)
 	}
 }
 
@@ -30,9 +132,12 @@ func (c *NoteCreate) SetInput(i CreateNoteInput) *NoteCreate {
 
 // UpdateNoteInput represents a mutation input for updating notes.
 type UpdateNoteInput struct {
-	Title     *string
-	Content   *string
-	CreatedAt *time.Time
+	Title           *string
+	Content         *string
+	CreatedAt       *time.Time
+	ClearParent     bool
+	AddParentIDs    []int
+	RemoveParentIDs []int
 }
 
 // Mutate applies the UpdateNoteInput on the NoteMutation builder.
@@ -45,6 +150,15 @@ func (i *UpdateNoteInput) Mutate(m *NoteMutation) {
 	}
 	if v := i.CreatedAt; v != nil {
 		m.SetCreatedAt(*v)
+	}
+	if i.ClearParent {
+		m.ClearParent()
+	}
+	if v := i.AddParentIDs; len(v) > 0 {
+		m.AddParentIDs(v...)
+	}
+	if v := i.RemoveParentIDs; len(v) > 0 {
+		m.RemoveParentIDs(v...)
 	}
 }
 

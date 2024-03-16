@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/errcode"
+	"github.com/altierawr/notebook/ent/folder"
 	"github.com/altierawr/notebook/ent/note"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 )
@@ -93,6 +94,254 @@ func paginateLimit(first, last *int) int {
 		limit = *last + 1
 	}
 	return limit
+}
+
+// FolderEdge is the edge representation of Folder.
+type FolderEdge struct {
+	Node   *Folder `json:"node"`
+	Cursor Cursor  `json:"cursor"`
+}
+
+// FolderConnection is the connection containing edges to Folder.
+type FolderConnection struct {
+	Edges      []*FolderEdge `json:"edges"`
+	PageInfo   PageInfo      `json:"pageInfo"`
+	TotalCount int           `json:"totalCount"`
+}
+
+func (c *FolderConnection) build(nodes []*Folder, pager *folderPager, after *Cursor, first *int, before *Cursor, last *int) {
+	c.PageInfo.HasNextPage = before != nil
+	c.PageInfo.HasPreviousPage = after != nil
+	if first != nil && *first+1 == len(nodes) {
+		c.PageInfo.HasNextPage = true
+		nodes = nodes[:len(nodes)-1]
+	} else if last != nil && *last+1 == len(nodes) {
+		c.PageInfo.HasPreviousPage = true
+		nodes = nodes[:len(nodes)-1]
+	}
+	var nodeAt func(int) *Folder
+	if last != nil {
+		n := len(nodes) - 1
+		nodeAt = func(i int) *Folder {
+			return nodes[n-i]
+		}
+	} else {
+		nodeAt = func(i int) *Folder {
+			return nodes[i]
+		}
+	}
+	c.Edges = make([]*FolderEdge, len(nodes))
+	for i := range nodes {
+		node := nodeAt(i)
+		c.Edges[i] = &FolderEdge{
+			Node:   node,
+			Cursor: pager.toCursor(node),
+		}
+	}
+	if l := len(c.Edges); l > 0 {
+		c.PageInfo.StartCursor = &c.Edges[0].Cursor
+		c.PageInfo.EndCursor = &c.Edges[l-1].Cursor
+	}
+	if c.TotalCount == 0 {
+		c.TotalCount = len(nodes)
+	}
+}
+
+// FolderPaginateOption enables pagination customization.
+type FolderPaginateOption func(*folderPager) error
+
+// WithFolderOrder configures pagination ordering.
+func WithFolderOrder(order *FolderOrder) FolderPaginateOption {
+	if order == nil {
+		order = DefaultFolderOrder
+	}
+	o := *order
+	return func(pager *folderPager) error {
+		if err := o.Direction.Validate(); err != nil {
+			return err
+		}
+		if o.Field == nil {
+			o.Field = DefaultFolderOrder.Field
+		}
+		pager.order = &o
+		return nil
+	}
+}
+
+// WithFolderFilter configures pagination filter.
+func WithFolderFilter(filter func(*FolderQuery) (*FolderQuery, error)) FolderPaginateOption {
+	return func(pager *folderPager) error {
+		if filter == nil {
+			return errors.New("FolderQuery filter cannot be nil")
+		}
+		pager.filter = filter
+		return nil
+	}
+}
+
+type folderPager struct {
+	reverse bool
+	order   *FolderOrder
+	filter  func(*FolderQuery) (*FolderQuery, error)
+}
+
+func newFolderPager(opts []FolderPaginateOption, reverse bool) (*folderPager, error) {
+	pager := &folderPager{reverse: reverse}
+	for _, opt := range opts {
+		if err := opt(pager); err != nil {
+			return nil, err
+		}
+	}
+	if pager.order == nil {
+		pager.order = DefaultFolderOrder
+	}
+	return pager, nil
+}
+
+func (p *folderPager) applyFilter(query *FolderQuery) (*FolderQuery, error) {
+	if p.filter != nil {
+		return p.filter(query)
+	}
+	return query, nil
+}
+
+func (p *folderPager) toCursor(f *Folder) Cursor {
+	return p.order.Field.toCursor(f)
+}
+
+func (p *folderPager) applyCursors(query *FolderQuery, after, before *Cursor) (*FolderQuery, error) {
+	direction := p.order.Direction
+	if p.reverse {
+		direction = direction.Reverse()
+	}
+	for _, predicate := range entgql.CursorsPredicate(after, before, DefaultFolderOrder.Field.column, p.order.Field.column, direction) {
+		query = query.Where(predicate)
+	}
+	return query, nil
+}
+
+func (p *folderPager) applyOrder(query *FolderQuery) *FolderQuery {
+	direction := p.order.Direction
+	if p.reverse {
+		direction = direction.Reverse()
+	}
+	query = query.Order(p.order.Field.toTerm(direction.OrderTermOption()))
+	if p.order.Field != DefaultFolderOrder.Field {
+		query = query.Order(DefaultFolderOrder.Field.toTerm(direction.OrderTermOption()))
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(p.order.Field.column)
+	}
+	return query
+}
+
+func (p *folderPager) orderExpr(query *FolderQuery) sql.Querier {
+	direction := p.order.Direction
+	if p.reverse {
+		direction = direction.Reverse()
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(p.order.Field.column)
+	}
+	return sql.ExprFunc(func(b *sql.Builder) {
+		b.Ident(p.order.Field.column).Pad().WriteString(string(direction))
+		if p.order.Field != DefaultFolderOrder.Field {
+			b.Comma().Ident(DefaultFolderOrder.Field.column).Pad().WriteString(string(direction))
+		}
+	})
+}
+
+// Paginate executes the query and returns a relay based cursor connection to Folder.
+func (f *FolderQuery) Paginate(
+	ctx context.Context, after *Cursor, first *int,
+	before *Cursor, last *int, opts ...FolderPaginateOption,
+) (*FolderConnection, error) {
+	if err := validateFirstLast(first, last); err != nil {
+		return nil, err
+	}
+	pager, err := newFolderPager(opts, last != nil)
+	if err != nil {
+		return nil, err
+	}
+	if f, err = pager.applyFilter(f); err != nil {
+		return nil, err
+	}
+	conn := &FolderConnection{Edges: []*FolderEdge{}}
+	ignoredEdges := !hasCollectedField(ctx, edgesField)
+	if hasCollectedField(ctx, totalCountField) || hasCollectedField(ctx, pageInfoField) {
+		hasPagination := after != nil || first != nil || before != nil || last != nil
+		if hasPagination || ignoredEdges {
+			c := f.Clone()
+			c.ctx.Fields = nil
+			if conn.TotalCount, err = c.Count(ctx); err != nil {
+				return nil, err
+			}
+			conn.PageInfo.HasNextPage = first != nil && conn.TotalCount > 0
+			conn.PageInfo.HasPreviousPage = last != nil && conn.TotalCount > 0
+		}
+	}
+	if ignoredEdges || (first != nil && *first == 0) || (last != nil && *last == 0) {
+		return conn, nil
+	}
+	if f, err = pager.applyCursors(f, after, before); err != nil {
+		return nil, err
+	}
+	if limit := paginateLimit(first, last); limit != 0 {
+		f.Limit(limit)
+	}
+	if field := collectedField(ctx, edgesField, nodeField); field != nil {
+		if err := f.collectField(ctx, graphql.GetOperationContext(ctx), *field, []string{edgesField, nodeField}); err != nil {
+			return nil, err
+		}
+	}
+	f = pager.applyOrder(f)
+	nodes, err := f.All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	conn.build(nodes, pager, after, first, before, last)
+	return conn, nil
+}
+
+// FolderOrderField defines the ordering field of Folder.
+type FolderOrderField struct {
+	// Value extracts the ordering value from the given Folder.
+	Value    func(*Folder) (ent.Value, error)
+	column   string // field or computed.
+	toTerm   func(...sql.OrderTermOption) folder.OrderOption
+	toCursor func(*Folder) Cursor
+}
+
+// FolderOrder defines the ordering of Folder.
+type FolderOrder struct {
+	Direction OrderDirection    `json:"direction"`
+	Field     *FolderOrderField `json:"field"`
+}
+
+// DefaultFolderOrder is the default ordering of Folder.
+var DefaultFolderOrder = &FolderOrder{
+	Direction: entgql.OrderDirectionAsc,
+	Field: &FolderOrderField{
+		Value: func(f *Folder) (ent.Value, error) {
+			return f.ID, nil
+		},
+		column: folder.FieldID,
+		toTerm: folder.ByID,
+		toCursor: func(f *Folder) Cursor {
+			return Cursor{ID: f.ID}
+		},
+	},
+}
+
+// ToEdge converts Folder into FolderEdge.
+func (f *Folder) ToEdge(order *FolderOrder) *FolderEdge {
+	if order == nil {
+		order = DefaultFolderOrder
+	}
+	return &FolderEdge{
+		Node:   f,
+		Cursor: order.Field.toCursor(f),
+	}
 }
 
 // NoteEdge is the edge representation of Note.

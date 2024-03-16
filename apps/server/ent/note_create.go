@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/altierawr/notebook/ent/folder"
 	"github.com/altierawr/notebook/ent/note"
 )
 
@@ -32,6 +33,14 @@ func (nc *NoteCreate) SetContent(s string) *NoteCreate {
 	return nc
 }
 
+// SetNillableContent sets the "content" field if the given value is not nil.
+func (nc *NoteCreate) SetNillableContent(s *string) *NoteCreate {
+	if s != nil {
+		nc.SetContent(*s)
+	}
+	return nc
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (nc *NoteCreate) SetCreatedAt(t time.Time) *NoteCreate {
 	nc.mutation.SetCreatedAt(t)
@@ -44,6 +53,21 @@ func (nc *NoteCreate) SetNillableCreatedAt(t *time.Time) *NoteCreate {
 		nc.SetCreatedAt(*t)
 	}
 	return nc
+}
+
+// AddParentIDs adds the "parent" edge to the Folder entity by IDs.
+func (nc *NoteCreate) AddParentIDs(ids ...int) *NoteCreate {
+	nc.mutation.AddParentIDs(ids...)
+	return nc
+}
+
+// AddParent adds the "parent" edges to the Folder entity.
+func (nc *NoteCreate) AddParent(f ...*Folder) *NoteCreate {
+	ids := make([]int, len(f))
+	for i := range f {
+		ids[i] = f[i].ID
+	}
+	return nc.AddParentIDs(ids...)
 }
 
 // Mutation returns the NoteMutation object of the builder.
@@ -81,6 +105,10 @@ func (nc *NoteCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (nc *NoteCreate) defaults() {
+	if _, ok := nc.mutation.Content(); !ok {
+		v := note.DefaultContent
+		nc.mutation.SetContent(v)
+	}
 	if _, ok := nc.mutation.CreatedAt(); !ok {
 		v := note.DefaultCreatedAt()
 		nc.mutation.SetCreatedAt(v)
@@ -135,6 +163,22 @@ func (nc *NoteCreate) createSpec() (*Note, *sqlgraph.CreateSpec) {
 	if value, ok := nc.mutation.CreatedAt(); ok {
 		_spec.SetField(note.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
+	}
+	if nodes := nc.mutation.ParentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   note.ParentTable,
+			Columns: note.ParentPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(folder.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

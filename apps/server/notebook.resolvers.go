@@ -22,6 +22,18 @@ func (r *mutationResolver) UpdateNote(ctx context.Context, id int, input ent.Upd
 	return client.Note.UpdateOneID(id).SetInput(input).Save(ctx)
 }
 
+// CreateFolder is the resolver for the createFolder field.
+func (r *mutationResolver) CreateFolder(ctx context.Context, input ent.CreateFolderInput) (*ent.Folder, error) {
+	client := ent.FromContext(ctx)
+	return client.Folder.Create().SetInput(input).Save(ctx)
+}
+
+// UpdateFolder is the resolver for the updateFolder field.
+func (r *mutationResolver) UpdateFolder(ctx context.Context, id int, input ent.UpdateFolderInput) (*ent.Folder, error) {
+	client := ent.FromContext(ctx)
+	return client.Folder.UpdateOneID(id).SetInput(input).Save(ctx)
+}
+
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 

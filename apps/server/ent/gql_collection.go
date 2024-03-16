@@ -7,8 +7,114 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/99designs/gqlgen/graphql"
+	"github.com/altierawr/notebook/ent/folder"
 	"github.com/altierawr/notebook/ent/note"
 )
+
+// CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
+func (f *FolderQuery) CollectFields(ctx context.Context, satisfies ...string) (*FolderQuery, error) {
+	fc := graphql.GetFieldContext(ctx)
+	if fc == nil {
+		return f, nil
+	}
+	if err := f.collectField(ctx, graphql.GetOperationContext(ctx), fc.Field, nil, satisfies...); err != nil {
+		return nil, err
+	}
+	return f, nil
+}
+
+func (f *FolderQuery) collectField(ctx context.Context, opCtx *graphql.OperationContext, collected graphql.CollectedField, path []string, satisfies ...string) error {
+	path = append([]string(nil), path...)
+	var (
+		unknownSeen    bool
+		fieldSeen      = make(map[string]struct{}, len(folder.Columns))
+		selectedFields = []string{folder.FieldID}
+	)
+	for _, field := range graphql.CollectFields(opCtx, collected.Selections, satisfies) {
+		switch field.Name {
+		case "folders":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = (&FolderClient{config: f.config}).Query()
+			)
+			if err := query.collectField(ctx, opCtx, field, path, mayAddCondition(satisfies, folderImplementors)...); err != nil {
+				return err
+			}
+			f.WithNamedFolders(alias, func(wq *FolderQuery) {
+				*wq = *query
+			})
+		case "parent":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = (&FolderClient{config: f.config}).Query()
+			)
+			if err := query.collectField(ctx, opCtx, field, path, mayAddCondition(satisfies, folderImplementors)...); err != nil {
+				return err
+			}
+			f.WithNamedParent(alias, func(wq *FolderQuery) {
+				*wq = *query
+			})
+		case "notes":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = (&NoteClient{config: f.config}).Query()
+			)
+			if err := query.collectField(ctx, opCtx, field, path, mayAddCondition(satisfies, noteImplementors)...); err != nil {
+				return err
+			}
+			f.WithNamedNotes(alias, func(wq *NoteQuery) {
+				*wq = *query
+			})
+		case "title":
+			if _, ok := fieldSeen[folder.FieldTitle]; !ok {
+				selectedFields = append(selectedFields, folder.FieldTitle)
+				fieldSeen[folder.FieldTitle] = struct{}{}
+			}
+		case "createdAt":
+			if _, ok := fieldSeen[folder.FieldCreatedAt]; !ok {
+				selectedFields = append(selectedFields, folder.FieldCreatedAt)
+				fieldSeen[folder.FieldCreatedAt] = struct{}{}
+			}
+		case "id":
+		case "__typename":
+		default:
+			unknownSeen = true
+		}
+	}
+	if !unknownSeen {
+		f.Select(selectedFields...)
+	}
+	return nil
+}
+
+type folderPaginateArgs struct {
+	first, last   *int
+	after, before *Cursor
+	opts          []FolderPaginateOption
+}
+
+func newFolderPaginateArgs(rv map[string]any) *folderPaginateArgs {
+	args := &folderPaginateArgs{}
+	if rv == nil {
+		return args
+	}
+	if v := rv[firstField]; v != nil {
+		args.first = v.(*int)
+	}
+	if v := rv[lastField]; v != nil {
+		args.last = v.(*int)
+	}
+	if v := rv[afterField]; v != nil {
+		args.after = v.(*Cursor)
+	}
+	if v := rv[beforeField]; v != nil {
+		args.before = v.(*Cursor)
+	}
+	return args
+}
 
 // CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
 func (n *NoteQuery) CollectFields(ctx context.Context, satisfies ...string) (*NoteQuery, error) {
@@ -31,6 +137,18 @@ func (n *NoteQuery) collectField(ctx context.Context, opCtx *graphql.OperationCo
 	)
 	for _, field := range graphql.CollectFields(opCtx, collected.Selections, satisfies) {
 		switch field.Name {
+		case "parent":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = (&FolderClient{config: n.config}).Query()
+			)
+			if err := query.collectField(ctx, opCtx, field, path, mayAddCondition(satisfies, folderImplementors)...); err != nil {
+				return err
+			}
+			n.WithNamedParent(alias, func(wq *FolderQuery) {
+				*wq = *query
+			})
 		case "title":
 			if _, ok := fieldSeen[note.FieldTitle]; !ok {
 				selectedFields = append(selectedFields, note.FieldTitle)

@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/altierawr/notebook/ent/folder"
 	"github.com/altierawr/notebook/ent/note"
 	"github.com/altierawr/notebook/ent/predicate"
 )
@@ -70,9 +71,45 @@ func (nu *NoteUpdate) SetNillableCreatedAt(t *time.Time) *NoteUpdate {
 	return nu
 }
 
+// AddParentIDs adds the "parent" edge to the Folder entity by IDs.
+func (nu *NoteUpdate) AddParentIDs(ids ...int) *NoteUpdate {
+	nu.mutation.AddParentIDs(ids...)
+	return nu
+}
+
+// AddParent adds the "parent" edges to the Folder entity.
+func (nu *NoteUpdate) AddParent(f ...*Folder) *NoteUpdate {
+	ids := make([]int, len(f))
+	for i := range f {
+		ids[i] = f[i].ID
+	}
+	return nu.AddParentIDs(ids...)
+}
+
 // Mutation returns the NoteMutation object of the builder.
 func (nu *NoteUpdate) Mutation() *NoteMutation {
 	return nu.mutation
+}
+
+// ClearParent clears all "parent" edges to the Folder entity.
+func (nu *NoteUpdate) ClearParent() *NoteUpdate {
+	nu.mutation.ClearParent()
+	return nu
+}
+
+// RemoveParentIDs removes the "parent" edge to Folder entities by IDs.
+func (nu *NoteUpdate) RemoveParentIDs(ids ...int) *NoteUpdate {
+	nu.mutation.RemoveParentIDs(ids...)
+	return nu
+}
+
+// RemoveParent removes "parent" edges to Folder entities.
+func (nu *NoteUpdate) RemoveParent(f ...*Folder) *NoteUpdate {
+	ids := make([]int, len(f))
+	for i := range f {
+		ids[i] = f[i].ID
+	}
+	return nu.RemoveParentIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -119,6 +156,51 @@ func (nu *NoteUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := nu.mutation.CreatedAt(); ok {
 		_spec.SetField(note.FieldCreatedAt, field.TypeTime, value)
+	}
+	if nu.mutation.ParentCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   note.ParentTable,
+			Columns: note.ParentPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(folder.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := nu.mutation.RemovedParentIDs(); len(nodes) > 0 && !nu.mutation.ParentCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   note.ParentTable,
+			Columns: note.ParentPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(folder.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := nu.mutation.ParentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   note.ParentTable,
+			Columns: note.ParentPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(folder.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, nu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -182,9 +264,45 @@ func (nuo *NoteUpdateOne) SetNillableCreatedAt(t *time.Time) *NoteUpdateOne {
 	return nuo
 }
 
+// AddParentIDs adds the "parent" edge to the Folder entity by IDs.
+func (nuo *NoteUpdateOne) AddParentIDs(ids ...int) *NoteUpdateOne {
+	nuo.mutation.AddParentIDs(ids...)
+	return nuo
+}
+
+// AddParent adds the "parent" edges to the Folder entity.
+func (nuo *NoteUpdateOne) AddParent(f ...*Folder) *NoteUpdateOne {
+	ids := make([]int, len(f))
+	for i := range f {
+		ids[i] = f[i].ID
+	}
+	return nuo.AddParentIDs(ids...)
+}
+
 // Mutation returns the NoteMutation object of the builder.
 func (nuo *NoteUpdateOne) Mutation() *NoteMutation {
 	return nuo.mutation
+}
+
+// ClearParent clears all "parent" edges to the Folder entity.
+func (nuo *NoteUpdateOne) ClearParent() *NoteUpdateOne {
+	nuo.mutation.ClearParent()
+	return nuo
+}
+
+// RemoveParentIDs removes the "parent" edge to Folder entities by IDs.
+func (nuo *NoteUpdateOne) RemoveParentIDs(ids ...int) *NoteUpdateOne {
+	nuo.mutation.RemoveParentIDs(ids...)
+	return nuo
+}
+
+// RemoveParent removes "parent" edges to Folder entities.
+func (nuo *NoteUpdateOne) RemoveParent(f ...*Folder) *NoteUpdateOne {
+	ids := make([]int, len(f))
+	for i := range f {
+		ids[i] = f[i].ID
+	}
+	return nuo.RemoveParentIDs(ids...)
 }
 
 // Where appends a list predicates to the NoteUpdate builder.
@@ -261,6 +379,51 @@ func (nuo *NoteUpdateOne) sqlSave(ctx context.Context) (_node *Note, err error) 
 	}
 	if value, ok := nuo.mutation.CreatedAt(); ok {
 		_spec.SetField(note.FieldCreatedAt, field.TypeTime, value)
+	}
+	if nuo.mutation.ParentCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   note.ParentTable,
+			Columns: note.ParentPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(folder.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := nuo.mutation.RemovedParentIDs(); len(nodes) > 0 && !nuo.mutation.ParentCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   note.ParentTable,
+			Columns: note.ParentPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(folder.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := nuo.mutation.ParentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   note.ParentTable,
+			Columns: note.ParentPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(folder.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Note{config: nuo.config}
 	_spec.Assign = _node.assignValues

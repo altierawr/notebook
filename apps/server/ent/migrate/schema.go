@@ -8,11 +8,23 @@ import (
 )
 
 var (
+	// FoldersColumns holds the columns for the "folders" table.
+	FoldersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "title", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+	}
+	// FoldersTable holds the schema information for the "folders" table.
+	FoldersTable = &schema.Table{
+		Name:       "folders",
+		Columns:    FoldersColumns,
+		PrimaryKey: []*schema.Column{FoldersColumns[0]},
+	}
 	// NotesColumns holds the columns for the "notes" table.
 	NotesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "title", Type: field.TypeString},
-		{Name: "content", Type: field.TypeString, Size: 2147483647},
+		{Name: "content", Type: field.TypeString, Size: 2147483647, Default: ""},
 		{Name: "created_at", Type: field.TypeTime},
 	}
 	// NotesTable holds the schema information for the "notes" table.
@@ -21,11 +33,68 @@ var (
 		Columns:    NotesColumns,
 		PrimaryKey: []*schema.Column{NotesColumns[0]},
 	}
+	// FolderFoldersColumns holds the columns for the "folder_folders" table.
+	FolderFoldersColumns = []*schema.Column{
+		{Name: "folder_id", Type: field.TypeInt},
+		{Name: "parent_id", Type: field.TypeInt},
+	}
+	// FolderFoldersTable holds the schema information for the "folder_folders" table.
+	FolderFoldersTable = &schema.Table{
+		Name:       "folder_folders",
+		Columns:    FolderFoldersColumns,
+		PrimaryKey: []*schema.Column{FolderFoldersColumns[0], FolderFoldersColumns[1]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "folder_folders_folder_id",
+				Columns:    []*schema.Column{FolderFoldersColumns[0]},
+				RefColumns: []*schema.Column{FoldersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "folder_folders_parent_id",
+				Columns:    []*schema.Column{FolderFoldersColumns[1]},
+				RefColumns: []*schema.Column{FoldersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+	}
+	// FolderNotesColumns holds the columns for the "folder_notes" table.
+	FolderNotesColumns = []*schema.Column{
+		{Name: "folder_id", Type: field.TypeInt},
+		{Name: "note_id", Type: field.TypeInt},
+	}
+	// FolderNotesTable holds the schema information for the "folder_notes" table.
+	FolderNotesTable = &schema.Table{
+		Name:       "folder_notes",
+		Columns:    FolderNotesColumns,
+		PrimaryKey: []*schema.Column{FolderNotesColumns[0], FolderNotesColumns[1]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "folder_notes_folder_id",
+				Columns:    []*schema.Column{FolderNotesColumns[0]},
+				RefColumns: []*schema.Column{FoldersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "folder_notes_note_id",
+				Columns:    []*schema.Column{FolderNotesColumns[1]},
+				RefColumns: []*schema.Column{NotesColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		FoldersTable,
 		NotesTable,
+		FolderFoldersTable,
+		FolderNotesTable,
 	}
 )
 
 func init() {
+	FolderFoldersTable.ForeignKeys[0].RefTable = FoldersTable
+	FolderFoldersTable.ForeignKeys[1].RefTable = FoldersTable
+	FolderNotesTable.ForeignKeys[0].RefTable = FoldersTable
+	FolderNotesTable.ForeignKeys[1].RefTable = NotesTable
 }

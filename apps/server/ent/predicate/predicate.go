@@ -6,5 +6,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// Folder is the predicate function for folder builders.
+type Folder func(*sql.Selector)
+
 // Note is the predicate function for note builders.
 type Note func(*sql.Selector)

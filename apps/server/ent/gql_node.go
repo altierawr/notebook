@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/schema"
 	"github.com/99designs/gqlgen/graphql"
+	"github.com/altierawr/notebook/ent/folder"
 	"github.com/altierawr/notebook/ent/note"
 	"github.com/hashicorp/go-multierror"
 	"golang.org/x/sync/semaphore"
@@ -22,6 +23,11 @@ import (
 type Noder interface {
 	IsNode()
 }
+
+var folderImplementors = []string{"Folder", "Node"}
+
+// IsNode implements the Node interface check for GQLGen.
+func (*Folder) IsNode() {}
 
 var noteImplementors = []string{"Note", "Node"}
 
@@ -86,6 +92,18 @@ func (c *Client) Noder(ctx context.Context, id int, opts ...NodeOption) (_ Noder
 
 func (c *Client) noder(ctx context.Context, table string, id int) (Noder, error) {
 	switch table {
+	case folder.Table:
+		query := c.Folder.Query().
+			Where(folder.ID(id))
+		query, err := query.CollectFields(ctx, folderImplementors...)
+		if err != nil {
+			return nil, err
+		}
+		n, err := query.Only(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return n, nil
 	case note.Table:
 		query := c.Note.Query().
 			Where(note.ID(id))
@@ -171,6 +189,22 @@ func (c *Client) noders(ctx context.Context, table string, ids []int) ([]Noder, 
 		idmap[id] = append(idmap[id], &noders[i])
 	}
 	switch table {
+	case folder.Table:
+		query := c.Folder.Query().
+			Where(folder.IDIn(ids...))
+		query, err := query.CollectFields(ctx, folderImplementors...)
+		if err != nil {
+			return nil, err
+		}
+		nodes, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, node := range nodes {
+			for _, noder := range idmap[node.ID] {
+				*noder = node
+			}
+		}
 	case note.Table:
 		query := c.Note.Query().
 			Where(note.IDIn(ids...))

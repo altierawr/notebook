@@ -5,6 +5,7 @@ package ent
 import (
 	"time"
 
+	"github.com/altierawr/notebook/ent/folder"
 	"github.com/altierawr/notebook/ent/note"
 	"github.com/altierawr/notebook/ent/schema"
 )
@@ -13,8 +14,18 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	folderFields := schema.Folder{}.Fields()
+	_ = folderFields
+	// folderDescCreatedAt is the schema descriptor for created_at field.
+	folderDescCreatedAt := folderFields[1].Descriptor()
+	// folder.DefaultCreatedAt holds the default value on creation for the created_at field.
+	folder.DefaultCreatedAt = folderDescCreatedAt.Default.(func() time.Time)
 	noteFields := schema.Note{}.Fields()
 	_ = noteFields
+	// noteDescContent is the schema descriptor for content field.
+	noteDescContent := noteFields[1].Descriptor()
+	// note.DefaultContent holds the default value on creation for the content field.
+	note.DefaultContent = noteDescContent.Default.(string)
 	// noteDescCreatedAt is the schema descriptor for created_at field.
 	noteDescCreatedAt := noteFields[2].Descriptor()
 	// note.DefaultCreatedAt holds the default value on creation for the created_at field.
