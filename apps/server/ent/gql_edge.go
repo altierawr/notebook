@@ -9,10 +9,11 @@ import (
 )
 
 func (f *Folder) Folders(
-	ctx context.Context, after *Cursor, first *int, before *Cursor, last *int, orderBy []*FolderOrder,
+	ctx context.Context, after *Cursor, first *int, before *Cursor, last *int, orderBy []*FolderOrder, where *FolderWhereInput,
 ) (*FolderConnection, error) {
 	opts := []FolderPaginateOption{
 		WithFolderOrder(orderBy),
+		WithFolderFilter(where.Filter),
 	}
 	alias := graphql.GetFieldContext(ctx).Field.Alias
 	totalCount, hasTotalCount := f.Edges.totalCount[0][alias]
@@ -41,10 +42,11 @@ func (f *Folder) Parent(ctx context.Context) (result []*Folder, err error) {
 }
 
 func (f *Folder) Notes(
-	ctx context.Context, after *Cursor, first *int, before *Cursor, last *int, orderBy []*NoteOrder,
+	ctx context.Context, after *Cursor, first *int, before *Cursor, last *int, orderBy []*NoteOrder, where *NoteWhereInput,
 ) (*NoteConnection, error) {
 	opts := []NotePaginateOption{
 		WithNoteOrder(orderBy),
+		WithNoteFilter(where.Filter),
 	}
 	alias := graphql.GetFieldContext(ctx).Field.Alias
 	totalCount, hasTotalCount := f.Edges.totalCount[2][alias]

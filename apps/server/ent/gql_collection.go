@@ -41,7 +41,7 @@ func (f *FolderQuery) collectField(ctx context.Context, opCtx *graphql.Operation
 				path  = append(path, alias)
 				query = (&FolderClient{config: f.config}).Query()
 			)
-			args := newFolderPaginateArgs(fieldArgs(ctx, nil, path...))
+			args := newFolderPaginateArgs(fieldArgs(ctx, new(FolderWhereInput), path...))
 			if err := validateFirstLast(args.first, args.last); err != nil {
 				return fmt.Errorf("validate first and last in path %q: %w", path, err)
 			}
@@ -141,7 +141,7 @@ func (f *FolderQuery) collectField(ctx context.Context, opCtx *graphql.Operation
 				path  = append(path, alias)
 				query = (&NoteClient{config: f.config}).Query()
 			)
-			args := newNotePaginateArgs(fieldArgs(ctx, nil, path...))
+			args := newNotePaginateArgs(fieldArgs(ctx, new(NoteWhereInput), path...))
 			if err := validateFirstLast(args.first, args.last); err != nil {
 				return fmt.Errorf("validate first and last in path %q: %w", path, err)
 			}
@@ -296,6 +296,9 @@ func newFolderPaginateArgs(rv map[string]any) *folderPaginateArgs {
 			args.opts = append(args.opts, WithFolderOrder(orders))
 		}
 	}
+	if v, ok := rv[whereField].(*FolderWhereInput); ok {
+		args.opts = append(args.opts, WithFolderFilter(v.Filter))
+	}
 	return args
 }
 
@@ -409,6 +412,9 @@ func newNotePaginateArgs(rv map[string]any) *notePaginateArgs {
 			}
 			args.opts = append(args.opts, WithNoteOrder(orders))
 		}
+	}
+	if v, ok := rv[whereField].(*NoteWhereInput); ok {
+		args.opts = append(args.opts, WithNoteFilter(v.Filter))
 	}
 	return args
 }

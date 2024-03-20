@@ -1,9 +1,10 @@
-package notebook
+package main
 
 import (
 	"context"
-	"github.com/altierawr/notebook/ent"
 	"log"
+
+	"github.com/altierawr/notebook/ent"
 
 	"entgo.io/ent/dialect"
 	_ "github.com/mattn/go-sqlite3"

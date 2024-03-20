@@ -1,4 +1,4 @@
-package notebook
+package main
 
 // This file will be automatically regenerated based on the schema, any resolver implementations
 // will be copied through when generating and any unknown code will be moved to the end.
@@ -22,15 +22,21 @@ func (r *queryResolver) Nodes(ctx context.Context, ids []int) ([]ent.Noder, erro
 }
 
 // Folders is the resolver for the folders field.
-func (r *queryResolver) Folders(ctx context.Context, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy []*ent.FolderOrder) (*ent.FolderConnection, error) {
+func (r *queryResolver) Folders(ctx context.Context, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy []*ent.FolderOrder, where *ent.FolderWhereInput) (*ent.FolderConnection, error) {
 	return r.client.Folder.Query().
-		Paginate(ctx, after, first, before, last, ent.WithFolderOrder(orderBy))
+		Paginate(ctx, after, first, before, last,
+			ent.WithFolderOrder(orderBy),
+			ent.WithFolderFilter(where.Filter),
+		)
 }
 
 // Notes is the resolver for the notes field.
-func (r *queryResolver) Notes(ctx context.Context, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy []*ent.NoteOrder) (*ent.NoteConnection, error) {
+func (r *queryResolver) Notes(ctx context.Context, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy []*ent.NoteOrder, where *ent.NoteWhereInput) (*ent.NoteConnection, error) {
 	return r.client.Note.Query().
-		Paginate(ctx, after, first, before, last, ent.WithNoteOrder(orderBy))
+		Paginate(ctx, after, first, before, last,
+			ent.WithNoteOrder(orderBy),
+			ent.WithNoteFilter(where.Filter),
+		)
 }
 
 // Query returns QueryResolver implementation.

@@ -1,4 +1,4 @@
-package notebook
+package main
 
 import (
 	"github.com/99designs/gqlgen/graphql"
