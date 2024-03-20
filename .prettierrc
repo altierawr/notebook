@@ -1,2 +1,15 @@
-semi: false
-trailingComma: "es5"
+{
+  "semi": false,
+  "trailingComma": "es5",
+  "importOrder": [
+    "<THIRD_PARTY_MODULES>",
+    "^@/(.*)$",
+    "^../(.*)$",
+    "^./(.*)$",
+    "^.$"
+  ],
+  "plugins": [
+    "prettier-plugin-tailwindcss",
+    "@trivago/prettier-plugin-sort-imports"
+  ]
+}

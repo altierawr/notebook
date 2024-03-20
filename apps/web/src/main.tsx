@@ -1,11 +1,15 @@
 import React from "react"
 import ReactDOM from "react-dom/client"
+import { RelayEnvironmentProvider } from "react-relay"
 import { RouterProvider } from "react-router-dom"
-import router from "./router.tsx"
 import "./index.css"
+import { RelayEnvironment } from "./relay-env"
+import router from "./router"
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <RouterProvider router={router} />
+    <RelayEnvironmentProvider environment={RelayEnvironment}>
+      <RouterProvider router={router} />
+    </RelayEnvironmentProvider>
   </React.StrictMode>
 )
