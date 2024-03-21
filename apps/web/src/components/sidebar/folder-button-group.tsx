@@ -107,6 +107,11 @@ const SidebarFolderButtonGroup = ({ folderRef }: TProps) => {
   )
 
   const handlePress = () => {
+    // Load query here as well in case the user navigated using the keyboard
+    loadQuery({
+      folderId: data.id,
+    })
+
     setIsOpen(!isOpen)
   }
 
