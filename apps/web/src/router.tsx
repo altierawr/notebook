@@ -1,16 +1,27 @@
 import { loadQuery } from "react-relay"
 import { createBrowserRouter } from "react-router-dom"
-import App from "./App"
-import AppQuery from "./__generated__/AppQuery.graphql"
+import appPageQuery from "./pages/__generated__/appPageQuery.graphql"
+import notePageQuery from "./pages/__generated__/notePageQuery.graphql"
 import { RelayEnvironment } from "./relay-env"
 
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <App />,
-    loader: async () => {
-      return loadQuery(RelayEnvironment, AppQuery, {})
+    lazy: () => import("./pages/app"),
+    loader: () => {
+      return loadQuery(RelayEnvironment, appPageQuery, {})
     },
+    children: [
+      {
+        path: "notes/:id",
+        lazy: () => import("./pages/note"),
+        loader: ({ params }) => {
+          return loadQuery(RelayEnvironment, notePageQuery, {
+            id: params.id,
+          })
+        },
+      },
+    ],
   },
 ])
 

@@ -74,7 +74,11 @@ const Group = ({ queryRef }: TGroupProps) => {
           if (!note?.node) return null
 
           return (
-            <Sidebar.NoteButton key={note.node.id} text={note.node.title} />
+            <Sidebar.NoteButton
+              key={note.node.id}
+              id={note.node.id}
+              text={note.node.title}
+            />
           )
         })}
       </GroupContainer>

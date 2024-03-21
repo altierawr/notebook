@@ -1,18 +1,19 @@
 import clsx from "clsx"
+import { Suspense } from "react"
 import { PreloadedQuery, graphql, usePreloadedQuery } from "react-relay"
-import { useLoaderData } from "react-router-dom"
+import { Outlet, useLoaderData } from "react-router-dom"
 import Sidebar from "@/components/sidebar"
-import { AppQuery } from "./__generated__/AppQuery.graphql"
-import SidebarFolderButtonGroup from "./components/sidebar/folder-button-group"
-import useDarkMode from "./hooks/use-dark-mode"
+import SidebarFolderButtonGroup from "@/components/sidebar/folder-button-group"
+import useDarkMode from "@/hooks/use-dark-mode"
+import { appPageQuery } from "./__generated__/appPageQuery.graphql"
 
-function App() {
+const Component = () => {
   const isDark = useDarkMode()
-  const query = useLoaderData() as PreloadedQuery<AppQuery>
+  const queryRef = useLoaderData() as PreloadedQuery<appPageQuery>
 
-  const data = usePreloadedQuery<AppQuery>(
+  const data = usePreloadedQuery<appPageQuery>(
     graphql`
-      query AppQuery {
+      query appPageQuery {
         folders(where: { hasParent: false }) {
           edges {
             node {
@@ -32,12 +33,12 @@ function App() {
         }
       }
     `,
-    query
+    queryRef
   )
 
   return (
     <div className={clsx(isDark && "dark")}>
-      <div className="bg-gray-0 h-[100dvh] w-full">
+      <div className="flex bg-gray-0 h-[100dvh] w-full">
         <Sidebar>
           {data.folders.edges?.map((folder) => {
             if (!folder?.node) return null
@@ -54,13 +55,26 @@ function App() {
             if (!note?.node) return null
 
             return (
-              <Sidebar.NoteButton key={note.node.id} text={note.node.title} />
+              <Sidebar.NoteButton
+                key={note.node.id}
+                id={note.node.id}
+                text={note.node.title}
+              />
             )
           })}
         </Sidebar>
+        <Suspense fallback={<p>Loading...</p>}>
+          <div className="flex-1">
+            <Outlet />
+          </div>
+        </Suspense>
       </div>
     </div>
   )
 }
 
-export default App
+const ErrorBoundary = () => {
+  return <></>
+}
+
+export { Component, ErrorBoundary }
