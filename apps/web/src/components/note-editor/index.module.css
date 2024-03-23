@@ -1,0 +1,54 @@
+.editor {
+  flex: 1;
+  color: var(--gray-12);
+  font-family: "SourceSans3";
+  font-size: 18px;
+
+  * {
+    outline: 0;
+  }
+
+  >div {
+    width: 100%;
+    height: 100%;
+  }
+
+  h1 {
+    font-size: 48px;
+    font-weight: 700;
+  }
+
+  h2 {
+    font-size: 36px;
+    font-weight: 700;
+  }
+
+  h3 {
+    font-size: 32px;
+    font-weight: 700;
+  }
+
+  h4 {
+    font-size: 24px;
+    font-weight: 700;
+  }
+
+  h5 {
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  h6 {
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  blockquote {
+    border-left: 2px solid var(--blue-12);
+    padding-left: var(--space-4);
+
+    >em {
+      font-style: normal;
+    }
+  }
+}

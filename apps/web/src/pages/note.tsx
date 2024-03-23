@@ -1,5 +1,6 @@
 import { PreloadedQuery, graphql, usePreloadedQuery } from "react-relay"
 import { useLoaderData } from "react-router-dom"
+import NoteEditor from "@/components/note-editor"
 import { notePageQuery } from "./__generated__/notePageQuery.graphql"
 
 const Component = () => {
@@ -9,10 +10,8 @@ const Component = () => {
     graphql`
       query notePageQuery($id: ID!) {
         node(id: $id) {
-          ... on Note {
-            id
-            content
-          }
+          id
+          ...noteEditor_note
         }
       }
     `,
@@ -20,9 +19,9 @@ const Component = () => {
   )
 
   return (
-    <>
-      <p className="text-gray-12">Note {data.node?.id}</p>
-    </>
+    <div className="h-full w-full flex justify-center px-8">
+      {data.node && <NoteEditor key={data.node.id} fragmentRef={data.node} />}
+    </div>
   )
 }
 

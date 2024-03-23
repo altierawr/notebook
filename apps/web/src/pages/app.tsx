@@ -38,7 +38,7 @@ const Component = () => {
 
   return (
     <div className={clsx(isDark && "dark")}>
-      <div className="flex bg-gray-0 h-[100dvh] w-full">
+      <div className="flex bg-gray-0 min-h-[100dvh] w-full">
         <Sidebar>
           {data.folders.edges?.map((folder) => {
             if (!folder?.node) return null
@@ -64,8 +64,14 @@ const Component = () => {
           })}
         </Sidebar>
         <Suspense fallback={<p>Loading...</p>}>
-          <div className="flex-1">
-            <Outlet />
+          <div className="flex-1 relative">
+            {/* Todo: Add actual navbar */}
+            <div className="w-full h-9 absolute top-0 left-0" />
+            <div className="w-full h-full pt-9">
+              <div className="w-full h-full pt-5">
+                <Outlet />
+              </div>
+            </div>
           </div>
         </Suspense>
       </div>
