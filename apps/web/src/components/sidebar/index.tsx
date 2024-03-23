@@ -8,7 +8,7 @@ import SidebarNoteButton from "./note-button"
 const Sidebar = ({ children }: PropsWithChildren) => {
   return (
     <>
-      <div className="bg-gray-1 border-r-gray-6 h-[100dvh] w-[280px] border-r border-solid">
+      <div className="bg-gray-1 border-r-gray-6 w-[280px] border-r border-solid">
         <Header />
         <Spacer size="5" />
         <SidebarButtonGroup>{children}</SidebarButtonGroup>
