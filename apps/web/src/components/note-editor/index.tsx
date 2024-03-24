@@ -103,7 +103,7 @@ const NoteEditor = (props: TProps) => {
   }
 
   return (
-    <div className="h-full w-full max-w-[500px] flex flex-col">
+    <div className="h-full w-full max-w-[720px] flex flex-col">
       <TextField>
         <Input
           value={title}
