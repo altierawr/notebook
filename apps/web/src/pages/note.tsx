@@ -1,3 +1,5 @@
+import { Loader } from "design"
+import { Suspense } from "react"
 import { PreloadedQuery, graphql, usePreloadedQuery } from "react-relay"
 import { useLoaderData } from "react-router-dom"
 import NoteEditor from "@/components/note-editor"
@@ -20,7 +22,9 @@ const Component = () => {
 
   return (
     <div className="h-full w-full flex justify-center px-8">
-      {data.node && <NoteEditor key={data.node.id} fragmentRef={data.node} />}
+      <Suspense fallback={<Loader />}>
+        {data.node && <NoteEditor key={data.node.id} fragmentRef={data.node} />}
+      </Suspense>
     </div>
   )
 }
