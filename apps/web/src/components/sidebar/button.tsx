@@ -13,35 +13,27 @@ type TProps = {
   onHoverEnd?: () => void
 }
 
-const SidebarButton = ({
-  children,
-  isDisabled,
-  isFolder,
-  isOpen,
-  onPress,
-  onHoverStart,
-  onHoverEnd,
-}: PropsWithChildren<TProps>) => {
+const SidebarButton = (props: PropsWithChildren<TProps>) => {
   return (
     <BaseButton
       color={colors.brand}
-      isDisabled={isDisabled}
-      onPress={onPress}
-      onHoverStart={onHoverStart}
-      onHoverEnd={onHoverEnd}
+      isDisabled={props.isDisabled}
+      onPress={props.onPress}
+      onHoverStart={props.onHoverStart}
+      onHoverEnd={props.onHoverEnd}
       className={clsx(
         "text-gray-12 flex w-full items-center gap-1 rounded-lg border border-transparent bg-transparent p-1 pl-2 pr-6",
-        !isDisabled && "hover:bg-gray-3 active:bg-gray-4",
-        isOpen && "bg-gray-2 !border-gray-6 !border !border-solid"
+        !props.isDisabled && "hover:bg-gray-3 active:bg-gray-4",
+        props.isOpen && "bg-gray-2 !border-gray-6 !border !border-solid"
       )}
     >
-      {isFolder && (
+      {props.isFolder && (
         <div
           className={clsx(
             "w-5",
             "grid",
             "place-items-center",
-            isOpen && "rotate-90"
+            props.isOpen && "rotate-90"
           )}
         >
           <IconChevronRight size={12} />
@@ -50,10 +42,10 @@ const SidebarButton = ({
       <span
         className={clsx(
           "truncate text-left text-[14px] font-normal",
-          !isFolder && "pl-6"
+          !props.isFolder && "pl-6"
         )}
       >
-        {children}
+        {props.children}
       </span>
     </BaseButton>
   )

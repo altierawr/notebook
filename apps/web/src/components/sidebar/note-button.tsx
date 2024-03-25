@@ -7,14 +7,14 @@ type TProps = {
   text: string
 }
 
-const SidebarNoteButton = ({ id, text }: PropsWithChildren<TProps>) => {
+const SidebarNoteButton = (props: PropsWithChildren<TProps>) => {
   const navigate = useNavigate()
 
   const handlePress = () => {
-    navigate(`/notes/${id}`)
+    navigate(`/notes/${props.id}`)
   }
 
-  return <SidebarButton onPress={handlePress}>{text}</SidebarButton>
+  return <SidebarButton onPress={handlePress}>{props.text}</SidebarButton>
 }
 
 export default SidebarNoteButton

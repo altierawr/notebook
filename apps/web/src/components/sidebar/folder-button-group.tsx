@@ -36,14 +36,14 @@ export const SidebarFolderButtonGroupQuery = graphql`
   }
 `
 
-const GroupContainer = ({ children }: PropsWithChildren) => {
+const GroupContainer = (props: PropsWithChildren) => {
   return (
     <div className="flex pl-2">
       <div className="grid w-5 place-items-center">
         <div className="border-r-gray-6 h-full border-r" />
       </div>
 
-      <SidebarButtonGroup>{children}</SidebarButtonGroup>
+      <SidebarButtonGroup>{props.children}</SidebarButtonGroup>
     </div>
   )
 }
