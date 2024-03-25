@@ -7,6 +7,7 @@ import {
   usePreloadedQuery,
   useQueryLoader,
 } from "react-relay"
+import { SORTING } from "@/utils/constants"
 import { folderButtonGroupQuery } from "./__generated__/folderButtonGroupQuery.graphql"
 import { folderButtonGroup_folder$key } from "./__generated__/folderButtonGroup_folder.graphql"
 import SidebarButtonGroup from "./button-group"
@@ -18,6 +19,7 @@ export const SidebarFolderButtonGroupQuery = graphql`
       edges {
         node {
           id
+          title
           ...folderButtonGroup_folder
         }
       }
@@ -47,30 +49,52 @@ const GroupContainer = ({ children }: PropsWithChildren) => {
 }
 
 type TGroupProps = {
+  sorting: SORTING
   queryRef: PreloadedQuery<folderButtonGroupQuery>
 }
 
-const Group = ({ queryRef }: TGroupProps) => {
+const Group = (props: TGroupProps) => {
   const data = usePreloadedQuery<folderButtonGroupQuery>(
     SidebarFolderButtonGroupQuery,
-    queryRef
+    props.queryRef
   )
+
+  const sortedFolders = [...(data.folders.edges || [])].sort((a, b) => {
+    if (!a?.node?.title || !b?.node?.title) return 0
+
+    if (a.node.title < b.node.title)
+      return props.sorting === SORTING.DESC ? -1 : 1
+    if (b.node.title < a.node.title)
+      return props.sorting === SORTING.DESC ? 1 : -1
+    return 0
+  })
+
+  const sortedNotes = [...(data.notes.edges || [])].sort((a, b) => {
+    if (!a?.node?.title || !b?.node?.title) return 0
+
+    if (a.node.title < b.node.title)
+      return props.sorting === SORTING.DESC ? -1 : 1
+    if (b.node.title < a.node.title)
+      return props.sorting === SORTING.DESC ? 1 : -1
+    return 0
+  })
 
   return (
     <>
       <GroupContainer>
-        {data.folders.edges?.map((folder) => {
+        {sortedFolders.map((folder) => {
           if (!folder?.node) return null
 
           return (
             <SidebarFolderButtonGroup
               key={folder.node.id}
               folderRef={folder.node}
+              sorting={props.sorting}
             />
           )
         })}
 
-        {data.notes.edges?.map((note) => {
+        {sortedNotes.map((note) => {
           if (!note?.node) return null
 
           return (
@@ -87,10 +111,11 @@ const Group = ({ queryRef }: TGroupProps) => {
 }
 
 type TProps = {
+  sorting: SORTING
   folderRef: folderButtonGroup_folder$key
 }
 
-const SidebarFolderButtonGroup = ({ folderRef }: TProps) => {
+const SidebarFolderButtonGroup = (props: TProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const [queryRef, loadQuery] = useQueryLoader<folderButtonGroupQuery>(
     SidebarFolderButtonGroupQuery
@@ -103,7 +128,7 @@ const SidebarFolderButtonGroup = ({ folderRef }: TProps) => {
         title
       }
     `,
-    folderRef
+    props.folderRef
   )
 
   const handlePress = () => {
@@ -142,7 +167,7 @@ const SidebarFolderButtonGroup = ({ folderRef }: TProps) => {
             </GroupContainer>
           }
         >
-          {queryRef && <Group queryRef={queryRef} />}
+          {queryRef && <Group queryRef={queryRef} sorting={props.sorting} />}
         </Suspense>
       </Collapsible>
     </>
