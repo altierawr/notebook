@@ -62,3 +62,16 @@ func (app *application) viewNoteHandler(w http.ResponseWriter, r *http.Request) 
 		app.serverErrorResponse(w, r, err)
 	}
 }
+
+func (app *application) listNotesHandler(w http.ResponseWriter, r *http.Request) {
+	notes, err := app.models.Notes.GetAll()
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"notes": notes}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
