@@ -15,5 +15,5 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodGet, "/notes", app.listNotesHandler)
 	router.HandlerFunc(http.MethodGet, "/notes/:id", app.viewNoteHandler)
 
-	return router
+	return app.enableCORS(router)
 }
