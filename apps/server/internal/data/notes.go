@@ -14,26 +14,24 @@ type Note struct {
 	CreatedAt time.Time `json:"created_at"`
 	Title     string    `json:"title"`
 	Content   string    `json:"content"`
-	Tags      []string  `json:"tags,omitempty"`
+	Tags      []string  `json:"tags"`
 }
 
 type NoteModel struct {
 	DB *sql.DB
 }
 
-func (m NoteModel) Insert(note *Note, title string, content string, tags []string) error {
+func (m NoteModel) Insert(note *Note) error {
 	query := `
-		INSERT INTO notes (title, content, tags)
-		VALUES ($1, $2, $3)
+		INSERT INTO notes
+		DEFAULT VALUES
 		RETURNING id, created_at, title, content, tags`
-
-	args := []interface{}{title, content, pq.Array(tags)}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	return m.DB.
-		QueryRowContext(ctx, query, args...).
+		QueryRowContext(ctx, query).
 		Scan(
 			&note.ID,
 			&note.CreatedAt,

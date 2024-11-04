@@ -9,21 +9,9 @@ import (
 )
 
 func (app *application) createNoteHandler(w http.ResponseWriter, r *http.Request) {
-	var input struct {
-		Title   string   `json:"title"`
-		Content string   `json:"content"`
-		Tags    []string `json:"tags"`
-	}
-
-	err := app.readJSON(w, r, &input)
-	if err != nil {
-		app.badRequestResponse(w, r, err)
-		return
-	}
-
 	note := &data.Note{}
 
-	err = app.models.Notes.Insert(note, input.Title, input.Content, input.Tags)
+	err := app.models.Notes.Insert(note)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
