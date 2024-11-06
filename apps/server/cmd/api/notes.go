@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/altierawr/notebook/internal/data"
 )
@@ -52,8 +53,36 @@ func (app *application) viewNoteHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 func (app *application) listNotesHandler(w http.ResponseWriter, r *http.Request) {
-	notes, err := app.models.Notes.GetAll()
+	var input struct {
+		IDs []int `json:"ids"`
+	}
+
+	qs := r.URL.Query()
+
+	ids := app.readCSV(qs, "ids", []string{})
+	input.IDs = []int{}
+	for _, id := range ids {
+		intId, err := strconv.Atoi(id)
+		if err != nil {
+			app.badRequestResponse(w, r, err)
+			return
+		}
+
+		input.IDs = append(input.IDs, intId)
+	}
+
+	fmt.Println(input.IDs)
+
+	notes := []*data.Note{}
+	var err error
+
+	if len(input.IDs) > 0 {
+		notes, err = app.models.Notes.GetByIds(input.IDs)
+	} else {
+		notes, err = app.models.Notes.GetAll()
+	}
 	if err != nil {
+		fmt.Println("yo")
 		app.serverErrorResponse(w, r, err)
 		return
 	}

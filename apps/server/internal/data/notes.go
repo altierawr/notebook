@@ -114,3 +114,44 @@ func (m NoteModel) GetAll() ([]*Note, error) {
 
 	return notes, nil
 }
+
+func (m NoteModel) GetByIds(ids []int) ([]*Note, error) {
+	query := `
+		SELECT id, created_at, title, content, tags
+		FROM notes
+		WHERE id = ANY($1::int[])`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := m.DB.QueryContext(ctx, query, pq.Array(ids))
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	notes := []*Note{}
+	for rows.Next() {
+		var note Note
+
+		err := rows.Scan(
+			&note.ID,
+			&note.CreatedAt,
+			&note.Title,
+			&note.Content,
+			pq.Array(&note.Tags),
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		notes = append(notes, &note)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return notes, nil
+}
