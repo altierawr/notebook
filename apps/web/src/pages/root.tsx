@@ -1,8 +1,8 @@
 import { Outlet } from "react-router-dom";
-import NotesList from "./components/notes-list";
-import Sidebar from "./components/sidebar";
+import NotesList from "../components/notes-list";
+import Sidebar from "../components/sidebar";
 
-const App = () => {
+const Root = () => {
   return (
     <div className="w-full flex h-[100dvh]">
       <Sidebar />
@@ -14,4 +14,4 @@ const App = () => {
   );
 };
 
-export default App;
+export default Root;
