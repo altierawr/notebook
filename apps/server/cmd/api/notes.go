@@ -27,6 +27,70 @@ func (app *application) createNoteHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
+func (app *application) updateNoteHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r)
+	if err != nil || id < 1 {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	note, err := app.models.Notes.Get(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.badRequestResponse(w, r, err)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+
+		return
+	}
+
+	var input struct {
+		Title   *string  `json:"title"`
+		Content *string  `json:"content"`
+		Tags    []string `json:"tags"`
+	}
+
+	err = app.readJSON(w, r, &input)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	if input.Title != nil {
+		note.Title = *input.Title
+	}
+
+	if input.Content != nil {
+		note.Content = *input.Content
+	}
+
+	if input.Tags != nil {
+		note.Tags = input.Tags
+	}
+
+	fmt.Println("Saving note content for note id", note.ID)
+	fmt.Println(note.Content)
+
+	err = app.models.Notes.Update(note)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrEditConflict):
+			app.editConflictResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"note": note}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
 func (app *application) viewNoteHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r)
 	if err != nil || id < 1 {

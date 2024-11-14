@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Note } from "../../utils/types";
+import { TNote } from "../../utils/types";
 import NoteBlock from "./note-block";
 import React from "react";
 import { IconPlus } from "@tabler/icons-react";
@@ -12,7 +12,7 @@ const NotesList = () => {
       const res = await fetch("http://localhost:4000/notes");
       const notes = await res.json();
       return notes as {
-        notes: Note[];
+        notes: TNote[];
       };
     },
   });

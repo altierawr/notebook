@@ -15,6 +15,7 @@ type Note struct {
 	Title     string    `json:"title"`
 	Content   string    `json:"content"`
 	Tags      []string  `json:"tags"`
+	Version   int64     `json:"version"`
 }
 
 type NoteModel struct {
@@ -25,7 +26,7 @@ func (m NoteModel) Insert(note *Note) error {
 	query := `
 		INSERT INTO notes
 		DEFAULT VALUES
-		RETURNING id, created_at, title, content, tags`
+		RETURNING id, created_at, title, content, tags, version`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -38,7 +39,39 @@ func (m NoteModel) Insert(note *Note) error {
 			&note.Title,
 			&note.Content,
 			pq.Array(&note.Tags),
+			&note.Version,
 		)
+}
+
+func (m NoteModel) Update(note *Note) error {
+	query := `
+		UPDATE notes
+		SET title = $1, content = $2, tags = $3, version = version + 1
+		WHERE id = $4 AND version = $5
+		RETURNING version`
+
+	args := []interface{}{
+		note.Title,
+		note.Content,
+		pq.Array(note.Tags),
+		note.ID,
+		note.Version,
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&note.Version)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return ErrEditConflict
+		default:
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (m NoteModel) Get(id int64) (*Note, error) {
@@ -47,7 +80,7 @@ func (m NoteModel) Get(id int64) (*Note, error) {
 	}
 
 	query := `
-		SELECT id, created_at, title, content, tags
+		SELECT id, created_at, title, content, tags, version
 		FROM notes
 		WHERE id = $1`
 
@@ -62,6 +95,7 @@ func (m NoteModel) Get(id int64) (*Note, error) {
 		&note.Title,
 		&note.Content,
 		pq.Array(&note.Tags),
+		&note.Version,
 	)
 	if err != nil {
 		switch {
@@ -77,7 +111,7 @@ func (m NoteModel) Get(id int64) (*Note, error) {
 
 func (m NoteModel) GetAll() ([]*Note, error) {
 	query := `
-		SELECT id, created_at, title, content, tags
+		SELECT id, created_at, title, content, tags, version
 		FROM notes`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -100,6 +134,7 @@ func (m NoteModel) GetAll() ([]*Note, error) {
 			&note.Title,
 			&note.Content,
 			pq.Array(&note.Tags),
+			&note.Version,
 		)
 		if err != nil {
 			return nil, err
@@ -117,7 +152,7 @@ func (m NoteModel) GetAll() ([]*Note, error) {
 
 func (m NoteModel) GetByIds(ids []int) ([]*Note, error) {
 	query := `
-		SELECT id, created_at, title, content, tags
+		SELECT id, created_at, title, content, tags, version
 		FROM notes
 		WHERE id = ANY($1::int[])`
 
@@ -141,6 +176,7 @@ func (m NoteModel) GetByIds(ids []int) ([]*Note, error) {
 			&note.Title,
 			&note.Content,
 			pq.Array(&note.Tags),
+			&note.Version,
 		)
 		if err != nil {
 			return nil, err
