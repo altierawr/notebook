@@ -19,7 +19,6 @@ const NotePage = () => {
   return (
     <div className="pt-4 mx-auto h-full flex flex-col">
       {isLoading && <p>Loading...</p>}
-      <h1>{data?.note.title}</h1>
       {!isLoading && data?.note && (
         <NoteEditor key={data.note.id} note={data.note} />
       )}
