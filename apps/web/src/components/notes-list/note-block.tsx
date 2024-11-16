@@ -1,9 +1,10 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { TNote } from "../../utils/types";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
+import clsx from "clsx";
 
 const handleError = (error: Error) => {
   console.error(error);
@@ -14,13 +15,32 @@ type TProps = {
 };
 
 const NoteBlock = ({ note }: TProps) => {
+  const location = useLocation();
+
+  const isSelected = location.pathname === `/notes/${note.id}`;
+
   return (
     <Link to={`/notes/${note.id}`}>
-      <div className="w-full bg-gray-3 rounded p-2 group hover:bg-gray-5 cursor-pointer transition">
-        <h2 className="group-hover:text-gray-12 text-gray-11 text-[14px] font-medium">
+      <div
+        className={clsx(
+          "w-full bg-gray-3 rounded p-2 group hover:bg-gray-5 cursor-pointer transition",
+          isSelected && "bg-gray-5",
+        )}
+      >
+        <h2
+          className={clsx(
+            "group-hover:text-gray-12 text-gray-11 text-[14px] font-medium",
+            isSelected && "text-gray-12",
+          )}
+        >
           {note.title || "Untitled"}
         </h2>
-        <div className="group-hover:text-gray-12 text-gray-11 text-[12px] font-light transition">
+        <div
+          className={clsx(
+            "group-hover:text-gray-12 text-gray-11 text-[12px] font-light transition",
+            isSelected && "text-gray-12",
+          )}
+        >
           {note.content === "" && "Empty note"}
           {note.content !== "" && (
             <LexicalComposer
@@ -55,7 +75,10 @@ const NoteBlock = ({ note }: TProps) => {
             {note.tags.map((tag) => (
               <div
                 key={tag}
-                className="rounded bg-gray-5 group-hover:bg-gray-6 text-[12px] p-1 transition"
+                className={clsx(
+                  "rounded bg-gray-5 group-hover:bg-gray-6 text-[12px] p-1 transition",
+                  isSelected && "bg-gray-6",
+                )}
               >
                 {tag}
               </div>
