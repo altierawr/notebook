@@ -5,7 +5,7 @@ import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { AutoFocusPlugin } from "@lexical/react/LexicalAutoFocusPlugin";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { TNote } from "../../utils/types";
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, useState } from "react";
 import OnChangePlugin from "./plugins/on-change";
 import { EditorState, SerializedEditorState } from "lexical";
 import { useQueryClient } from "@tanstack/react-query";
@@ -47,6 +47,9 @@ const NoteEditor = ({ note }: TProps) => {
         console.log("Updated note", note.id);
         queryClient.invalidateQueries({
           queryKey: ["note", note.id],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["notes"],
         });
       }
     }, 500);
