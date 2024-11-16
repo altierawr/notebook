@@ -14,15 +14,13 @@ type TProps = {
 };
 
 const NoteBlock = ({ note }: TProps) => {
-  console.log("note id", note.id, "content", JSON.parse(note.content));
-
   return (
     <Link to={`/notes/${note.id}`}>
       <div className="w-full bg-gray-3 rounded p-2 group hover:bg-gray-5 cursor-pointer transition">
         <h2 className="group-hover:text-gray-12 text-gray-11 text-[14px] font-medium">
           {note.title || "Untitled"}
         </h2>
-        <p className="group-hover:text-gray-12 text-gray-11 text-[12px] font-light transition">
+        <div className="group-hover:text-gray-12 text-gray-11 text-[12px] font-light transition">
           {note.content === "" && "Empty note"}
           {note.content !== "" && (
             <LexicalComposer
@@ -30,13 +28,18 @@ const NoteBlock = ({ note }: TProps) => {
                 namespace: "NoteEditor",
                 onError: handleError,
                 editorState: note.content !== "" ? note.content : undefined,
+                editable: false,
               }}
               key={note.content}
             >
               <div className="w-full relative">
                 <RichTextPlugin
                   contentEditable={
-                    <ContentEditable className="outline-none max-h-[70px] overflow-hidden" />
+                    <ContentEditable
+                      readOnly
+                      tabIndex={-1}
+                      className="outline-none max-h-[70px] overflow-hidden pointer-events-none select-none"
+                    />
                   }
                   placeholder={
                     <div className="absolute top-0 left-0">Empty note</div>
@@ -46,7 +49,7 @@ const NoteBlock = ({ note }: TProps) => {
               </div>
             </LexicalComposer>
           )}
-        </p>
+        </div>
         {note.tags.length > 0 && (
           <div className="flex gap-2 mt-2">
             {note.tags.map((tag) => (
