@@ -69,7 +69,8 @@ a:visited {
 
 @font-face {
   font-family: "SourceSans3";
-  src: url("/SourceSans3/SourceSans3-VariableFont_wght.ttf") format("woff2-variations");
+  src: url("/SourceSans3/SourceSans3-VariableFont_wght.ttf")
+    format("woff2-variations");
   font-weight: 200 900;
   font-stretch: 75% 125%;
   font-style: normal;
@@ -77,10 +78,21 @@ a:visited {
 
 @font-face {
   font-family: "SourceSans3";
-  src: url("/SourceSans3/SourceSans3-Italic-VariableFont_wght.ttf") format("woff2-variations");
+  src: url("/SourceSans3/SourceSans3-Italic-VariableFont_wght.ttf")
+    format("woff2-variations");
   font-weight: 200 900;
   font-stretch: 75% 125%;
   font-style: italic;
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
 }
 
 :root,
