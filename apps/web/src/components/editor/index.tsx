@@ -7,11 +7,22 @@ import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { TNote } from "../../utils/types";
 import { ChangeEvent, useState } from "react";
 import OnChangePlugin from "./plugins/on-change";
-import { EditorState, SerializedEditorState } from "lexical";
+import { $getRoot, EditorState, SerializedEditorState } from "lexical";
 import { useQueryClient } from "@tanstack/react-query";
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 
 const handleError = (error: Error) => {
   console.error(error);
+};
+
+const getCleanRawEditorContent = (state: EditorState) => {
+  return state.read(() =>
+    $getRoot()
+      .getTextContent()
+      .split("\n")
+      .filter((t) => t.trim().length > 0)
+      .join("\n"),
+  );
 };
 
 type TProps = {
@@ -20,13 +31,11 @@ type TProps = {
 
 const NoteEditor = ({ note }: TProps) => {
   const [noteTitle, setNoteTitle] = useState(note.title);
-  const [editorState, setEditorState] = useState<
-    SerializedEditorState | undefined
-  >(note.content !== "" ? JSON.parse(note.content) : undefined);
+  const [editorState, setEditorState] = useState<EditorState | undefined>();
   const [noteSaveTimeout, setNoteSaveTimeout] = useState<number | undefined>();
   const queryClient = useQueryClient();
 
-  const saveNote = (title: string, content?: SerializedEditorState) => {
+  const saveNote = (title: string, content?: EditorState) => {
     if (typeof noteSaveTimeout === "number") {
       clearTimeout(noteSaveTimeout);
     }
@@ -36,7 +45,8 @@ const NoteEditor = ({ note }: TProps) => {
         method: "PATCH",
         body: JSON.stringify({
           title,
-          content: JSON.stringify(content),
+          content: content ? JSON.stringify(content.toJSON()) : undefined,
+          rawContent: content ? getCleanRawEditorContent(content) : undefined,
         }),
       });
 
@@ -57,8 +67,8 @@ const NoteEditor = ({ note }: TProps) => {
   };
 
   const onEditorStateChange = (state: EditorState) => {
-    setEditorState(state.toJSON());
-    saveNote(noteTitle, state.toJSON());
+    setEditorState(state);
+    saveNote(noteTitle, state);
   };
 
   const handleTitleChange = (e: ChangeEvent<HTMLInputElement>) => {

@@ -47,9 +47,10 @@ func (app *application) updateNoteHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	var input struct {
-		Title   *string  `json:"title"`
-		Content *string  `json:"content"`
-		Tags    []string `json:"tags"`
+		Title      *string  `json:"title"`
+		Content    *string  `json:"content"`
+		RawContent *string  `json:"rawContent"`
+		Tags       []string `json:"tags"`
 	}
 
 	err = app.readJSON(w, r, &input)
@@ -66,12 +67,13 @@ func (app *application) updateNoteHandler(w http.ResponseWriter, r *http.Request
 		note.Content = *input.Content
 	}
 
+	if input.RawContent != nil {
+		note.RawContent = *input.RawContent
+	}
+
 	if input.Tags != nil {
 		note.Tags = input.Tags
 	}
-
-	fmt.Println("Saving note content for note id", note.ID)
-	fmt.Println(note.Content)
 
 	err = app.models.Notes.Update(note)
 	if err != nil {
@@ -135,8 +137,6 @@ func (app *application) listNotesHandler(w http.ResponseWriter, r *http.Request)
 		input.IDs = append(input.IDs, intId)
 	}
 
-	fmt.Println(input.IDs)
-
 	notes := []*data.Note{}
 	var err error
 
@@ -146,7 +146,6 @@ func (app *application) listNotesHandler(w http.ResponseWriter, r *http.Request)
 		notes, err = app.models.Notes.GetAll()
 	}
 	if err != nil {
-		fmt.Println("yo")
 		app.serverErrorResponse(w, r, err)
 		return
 	}

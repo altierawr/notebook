@@ -10,12 +10,13 @@ import (
 )
 
 type Note struct {
-	ID        int64     `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
-	Title     string    `json:"title"`
-	Content   string    `json:"content"`
-	Tags      []string  `json:"tags"`
-	Version   int64     `json:"version"`
+	ID         int64     `json:"id"`
+	CreatedAt  time.Time `json:"created_at"`
+	Title      string    `json:"title"`
+	Content    string    `json:"content"`
+	RawContent string    `json:"rawContent"`
+	Tags       []string  `json:"tags"`
+	Version    int64     `json:"version"`
 }
 
 type NoteModel struct {
@@ -46,13 +47,14 @@ func (m NoteModel) Insert(note *Note) error {
 func (m NoteModel) Update(note *Note) error {
 	query := `
 		UPDATE notes
-		SET title = $1, content = $2, tags = $3, version = version + 1
-		WHERE id = $4 AND version = $5
+		SET title = $1, content = $2, raw_content = $3, tags = $4, version = version + 1
+		WHERE id = $5 AND version = $6
 		RETURNING version`
 
 	args := []interface{}{
 		note.Title,
 		note.Content,
+		note.RawContent,
 		pq.Array(note.Tags),
 		note.ID,
 		note.Version,

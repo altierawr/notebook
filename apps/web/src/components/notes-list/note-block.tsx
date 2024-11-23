@@ -23,7 +23,7 @@ const NoteBlock = ({ note }: TProps) => {
     <Link to={`/notes/${note.id}`}>
       <div
         className={clsx(
-          "w-full bg-gray-3 rounded p-2 group hover:bg-gray-5 cursor-pointer transition",
+          "w-full bg-gray-3 rounded p-2 group hover:bg-gray-5 transition",
           isSelected && "bg-gray-5",
         )}
       >
