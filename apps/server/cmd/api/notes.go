@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/altierawr/notebook/internal/data"
+	"github.com/altierawr/notebook/internal/data/validator"
 )
 
 func (app *application) createNoteHandler(w http.ResponseWriter, r *http.Request) {
@@ -120,31 +120,29 @@ func (app *application) viewNoteHandler(w http.ResponseWriter, r *http.Request) 
 
 func (app *application) listNotesHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		IDs []int `json:"ids"`
+		Query string
+		data.Filters
 	}
 
 	qs := r.URL.Query()
+	v := validator.New()
 
-	ids := app.readCSV(qs, "ids", []string{})
-	input.IDs = []int{}
-	for _, id := range ids {
-		intId, err := strconv.Atoi(id)
-		if err != nil {
-			app.badRequestResponse(w, r, err)
-			return
-		}
+	input.Query = app.readString(qs, "query", "")
+	input.Filters.Page = app.readInt(qs, "page", 1, v)
+	input.Filters.PageSize = app.readInt(qs, "page_size", 50, v)
+	input.Filters.Sort = app.readString(qs, "sort", "id")
+	input.Filters.SortSafelist = []string{"id", "title", "-id", "-title"}
 
-		input.IDs = append(input.IDs, intId)
+	if data.ValidateFilters(v, input.Filters); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
 	}
 
 	notes := []*data.Note{}
 	var err error
 
-	if len(input.IDs) > 0 {
-		notes, err = app.models.Notes.GetByIds(input.IDs)
-	} else {
-		notes, err = app.models.Notes.GetAll()
-	}
+	notes, err = app.models.Notes.GetAll(input.Query, input.Filters)
+
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return

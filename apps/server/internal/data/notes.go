@@ -111,30 +111,37 @@ func (m NoteModel) Get(id int64) (*Note, error) {
 	return &note, nil
 }
 
-func (m NoteModel) GetAll() ([]*Note, error) {
+func (m NoteModel) GetAll(searchQuery string, filters Filters) ([]*Note, error) {
 	query := `
-		SELECT id, created_at, title, content, tags, version
-		FROM notes`
+		SELECT COUNT(*) OVER(), id, created_at, title, content, raw_content, tags, version
+		FROM notes
+		WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '')
+		OR (to_tsvector('simple', raw_content) @@ plainto_tsquery('simple', $1) OR $1 = '')
+		ORDER BY id ASC`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	rows, err := m.DB.QueryContext(ctx, query)
+	rows, err := m.DB.QueryContext(ctx, query, searchQuery)
 	if err != nil {
 		return nil, err
 	}
 
 	defer rows.Close()
 
+	totalRecords := 0
 	notes := []*Note{}
+
 	for rows.Next() {
 		var note Note
 
 		err := rows.Scan(
+			&totalRecords,
 			&note.ID,
 			&note.CreatedAt,
 			&note.Title,
 			&note.Content,
+			&note.RawContent,
 			pq.Array(&note.Tags),
 			&note.Version,
 		)

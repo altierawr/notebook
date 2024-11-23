@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/altierawr/notebook/internal/data/validator"
 	"github.com/julienschmidt/httprouter"
 	"github.com/rs/zerolog/log"
 )
@@ -25,6 +26,22 @@ func (app *application) readIDParam(r *http.Request) (int64, error) {
 	}
 
 	return id, nil
+}
+
+func (app *application) readInt(qs url.Values, key string, defaultValue int, v *validator.Validator) int {
+	s := qs.Get(key)
+
+	if s == "" {
+		return defaultValue
+	}
+
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		v.AddError(key, "must be an integer value")
+		return defaultValue
+	}
+
+	return i
 }
 
 func (app *application) writeJSON(w http.ResponseWriter, status int, data envelope, headers http.Header) error {
