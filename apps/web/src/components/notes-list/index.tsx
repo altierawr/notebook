@@ -1,21 +1,39 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { TNote } from "../../utils/types";
 import NoteBlock from "./note-block";
-import React from "react";
+import React, { ChangeEvent, useState } from "react";
 import { IconPlus, IconSearch } from "@tabler/icons-react";
 
 const NotesList = () => {
+  const [searchText, setSearchText] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchTimeout, setSearchTimeout] = useState<number | undefined>();
   const queryClient = useQueryClient();
-  const { data } = useQuery({
-    queryKey: ["notes"],
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["notes", searchQuery],
     queryFn: async () => {
-      const res = await fetch("http://localhost:4000/notes");
+      const res = await fetch(
+        `http://localhost:4000/notes?query=${searchQuery}`,
+      );
       const notes = await res.json();
       return notes as {
         notes: TNote[];
       };
     },
   });
+
+  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setSearchText(e.target.value);
+    if (typeof searchTimeout === "number") {
+      clearTimeout(searchTimeout);
+    }
+
+    const timeout = setTimeout(async () => {
+      setSearchQuery(e.target.value);
+    }, 500);
+    setSearchTimeout(timeout);
+  };
 
   const handleNoteCreateClick = async () => {
     const res = await fetch("http://localhost:4000/notes", {
@@ -37,6 +55,8 @@ const NotesList = () => {
             type="text"
             placeholder="Search notes..."
             className="bg-transparent outline-none flex-1 text-[14px]"
+            value={searchText}
+            onChange={handleSearchChange}
           />
         </div>
         <div className="flex flex-col gap-2 flex-1 h-full overflow-hidden">
@@ -47,13 +67,15 @@ const NotesList = () => {
             </div>
           </div>
           <div className="flex flex-col gap-2 flex-1 overflow-y-auto no-scrollbar">
-            {data?.notes
-              .sort((a, b) => parseInt(a.id) - parseInt(b.id))
-              .map((note) => (
-                <React.Fragment key={note.id}>
-                  <NoteBlock note={note} />
-                </React.Fragment>
-              ))}
+            {isLoading && <p>Loading...</p>}
+            {!isLoading &&
+              data?.notes
+                .sort((a, b) => parseInt(a.id) - parseInt(b.id))
+                .map((note) => (
+                  <React.Fragment key={note.id}>
+                    <NoteBlock note={note} />
+                  </React.Fragment>
+                ))}
             <div className="w-full min-h-2 h-2" />
           </div>
         </div>
