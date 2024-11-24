@@ -3,11 +3,13 @@ import { TNote } from "../../utils/types";
 import NoteBlock from "./note-block";
 import React, { ChangeEvent, useState } from "react";
 import { IconPlus, IconSearch } from "@tabler/icons-react";
+import { useLocationStore } from "../../store";
 
 const NotesList = () => {
   const [searchText, setSearchText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchTimeout, setSearchTimeout] = useState<number | undefined>();
+  const location = useLocationStore((state) => state.location);
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -46,6 +48,13 @@ const NotesList = () => {
     }
   };
 
+  const headerTitle =
+    location === "notes"
+      ? "My Notes"
+      : location === "favorites"
+        ? "Favorites"
+        : "Trash";
+
   return (
     <>
       <div className="w-[280px] h-full p-2 pb-0 border-r border-gray-6 flex flex-col gap-4">
@@ -61,7 +70,9 @@ const NotesList = () => {
         </div>
         <div className="flex flex-col gap-2 flex-1 h-full overflow-hidden">
           <div className="flex justify-between w-full text-gray-11 items-center">
-            <h2 className="uppercase text-[12px] tracking-[1px]">My Notes</h2>
+            <h2 className="uppercase text-[12px] tracking-[1px]">
+              {headerTitle}
+            </h2>
             <div className="cursor-pointer" onClick={handleNoteCreateClick}>
               <IconPlus size={20} stroke={1.5} />
             </div>
