@@ -69,13 +69,11 @@ const NotesList = () => {
           <div className="flex flex-col gap-2 flex-1 overflow-y-auto no-scrollbar">
             {isLoading && <p>Loading...</p>}
             {!isLoading &&
-              data?.notes
-                .sort((a, b) => parseInt(a.id) - parseInt(b.id))
-                .map((note) => (
-                  <React.Fragment key={note.id}>
-                    <NoteBlock note={note} />
-                  </React.Fragment>
-                ))}
+              data?.notes.map((note) => (
+                <React.Fragment key={note.id}>
+                  <NoteBlock note={note} />
+                </React.Fragment>
+              ))}
             <div className="w-full min-h-2 h-2" />
           </div>
         </div>
