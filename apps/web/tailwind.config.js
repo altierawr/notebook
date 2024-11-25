@@ -12,6 +12,7 @@ export default {
         success: generateScale("green"),
         alert: generateScale("yellow"),
         error: generateScale("red"),
+        red: generateScale("red"),
       },
       spacing: generateSpacing(),
     },

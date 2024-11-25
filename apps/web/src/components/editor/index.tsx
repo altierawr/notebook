@@ -54,7 +54,6 @@ const NoteEditor = ({ note }: TProps) => {
         const json = await res.json();
         console.error("Note update failed:", json);
       } else {
-        console.log("Updated note", note.id);
         queryClient.invalidateQueries({
           queryKey: ["note", note.id],
         });

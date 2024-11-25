@@ -126,6 +126,22 @@ func (app *application) readString(qs url.Values, key string, defaultValue strin
 	return s
 }
 
+func (app *application) readBool(qs url.Values, key string) *bool {
+	s := qs.Get(key)
+
+	if s == "" {
+		return nil
+	}
+
+	if s == "false" {
+		result := false
+		return &result
+	}
+
+	result := true
+	return &result
+}
+
 func (app *application) readCSV(qs url.Values, key string, defaultValue []string) []string {
 	csv := qs.Get(key)
 

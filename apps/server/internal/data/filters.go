@@ -12,6 +12,8 @@ type Filters struct {
 	PageSize     int
 	Sort         string
 	SortSafelist []string
+	Favorited    *bool
+	Trashed      *bool
 }
 
 func (f Filters) sortColumn() string {

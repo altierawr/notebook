@@ -13,10 +13,10 @@ const NotesList = () => {
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["notes", searchQuery],
+    queryKey: ["notes", searchQuery, location],
     queryFn: async () => {
       const res = await fetch(
-        `http://localhost:4000/notes?query=${searchQuery}`,
+        `http://localhost:4000/notes?query=${searchQuery}&favorited=${location === 'favorites' ? 'true' : ""}&trashed=${location === 'trash' ? "true" : "false"}`,
       );
       const notes = await res.json();
       return notes as {
@@ -41,10 +41,12 @@ const NotesList = () => {
     const res = await fetch("http://localhost:4000/notes", {
       method: "POST",
     });
+
     if (res.status === 201) {
-      queryClient.invalidateQueries({ queryKey: ["notes"] });
+      queryClient.invalidateQueries({ queryKey: ["notes"]});
     } else {
-      console.error("Note creation failed");
+      const json = await res.json()
+      console.error("Note creation failed:", json);
     }
   };
 

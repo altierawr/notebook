@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/altierawr/notebook/internal/data"
 	"github.com/altierawr/notebook/internal/data/validator"
@@ -51,6 +52,8 @@ func (app *application) updateNoteHandler(w http.ResponseWriter, r *http.Request
 		Content    *string  `json:"content"`
 		RawContent *string  `json:"rawContent"`
 		Tags       []string `json:"tags"`
+		IsTrashed  *bool    `json:"isTrashed"`
+		IsFavorite *bool    `json:"isFavorite"`
 	}
 
 	err = app.readJSON(w, r, &input)
@@ -73,6 +76,18 @@ func (app *application) updateNoteHandler(w http.ResponseWriter, r *http.Request
 
 	if input.Tags != nil {
 		note.Tags = input.Tags
+	}
+
+	if input.IsTrashed != nil {
+		note.IsTrashed = *input.IsTrashed
+
+		if *input.IsTrashed {
+			note.TrashedAt = time.Now()
+		}
+	}
+
+	if input.IsFavorite != nil {
+		note.IsFavorite = *input.IsFavorite
 	}
 
 	err = app.models.Notes.Update(note)
@@ -131,6 +146,8 @@ func (app *application) listNotesHandler(w http.ResponseWriter, r *http.Request)
 	input.Filters.Page = app.readInt(qs, "page", 1, v)
 	input.Filters.PageSize = app.readInt(qs, "page_size", 50, v)
 	input.Filters.Sort = app.readString(qs, "sort", "id")
+	input.Filters.Favorited = app.readBool(qs, "favorited")
+	input.Filters.Trashed = app.readBool(qs, "trashed")
 	input.Filters.SortSafelist = []string{"id", "title", "-id", "-title"}
 
 	if data.ValidateFilters(v, input.Filters); !v.Valid() {
